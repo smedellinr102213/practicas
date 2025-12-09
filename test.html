@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Juego de Arrastre Modificado</title>
+    <style>
+        /* Estilos básicos para el ejemplo */
+        .caja-destino {
+            border: 2px dashed #007bff;
+            padding: 10px;
+            margin: 10px;
+            min-height: 100px;
+            background-color: #f8f9fa;
+        }
+        .palabra-draggable {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            background-color: white; /* Color base */
+            cursor: grab;
+            user-select: none;
+            transition: background-color 0.3s; /* Para el feedback visual */
+        }
+        /* Color para la caja que recibe el arrastre */
+        .caja-destino:hover {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="contenedor-palabras" style="border: 1px solid black; padding: 10px; margin-bottom: 20px;">
+        <h3>Arrastre las palabras:</h3>
+    </div>
+
+    <div id="caja-propios" class="caja-destino" data-tipo="propios" 
+         ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h4>Sustantivos Propios (6 palabras)</h4>
+    </div>
+
+    <div id="caja-comunes" class="caja-destino" data-tipo="comunes" 
+         ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h4>Sustantivos Comunes (6 palabras)</h4>
+    </div>
+
+    <div id="caja-no-sustantivos" class="caja-destino" data-tipo="noSustantivos" 
+         ondrop="drop(event)" ondragover="allowDrop(event)">
+        <h4>No Sustantivos (6 palabras)</h4>
+    </div>
+
+    <script>
+        // Pegue el código JavaScript modificado aquí
+        // ... (El código de arriba) ...
+    </script>
+
+</body>
+</html>
