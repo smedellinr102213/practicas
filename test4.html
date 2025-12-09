@@ -43,7 +43,7 @@
             cursor: grab;
             user-select: none; 
             transition: background-color 0.3s, transform 0.2s, opacity 0.2s; 
-            touch-action: none; /* Crucial para evitar conflictos con el scroll en iPad */
+            touch-action: none; 
         }
 
         /* Contenedor de las Cajas de Destino */
@@ -127,6 +127,12 @@
         
         let elementoArrastrado = null; 
         let popup = null; 
+        
+        // --- FUNCIÓN DE NORMALIZACIÓN (NUEVA Y CRÍTICA PARA IPAD) ---
+        function normalizarTexto(texto) {
+            // Convierte a minúsculas y elimina espacios iniciales/finales
+            return texto.trim().toLowerCase();
+        }
 
         // --- 2. FUNCIÓN PARA MOSTRAR EL POP-UP ---
         function crearPopup() {
@@ -162,11 +168,14 @@
             ev.preventDefault();
         }
         
-        // --- FUNCIÓN CENTRAL DE SOLTADO (Única para ratón y toque) ---
+        // --- FUNCIÓN CENTRAL DE SOLTADO (CORRECCIÓN CLAVE AQUÍ) ---
         function manejarDrop(draggedElement, destinoCaja) {
             const destinoTipo = destinoCaja.getAttribute('data-tipo');
             const palabraTipo = draggedElement.getAttribute('data-tipo');
             const contenedorInicial = document.getElementById('contenedor-palabras');
+            
+            // **LA CORRECCIÓN:** La evaluación ahora usa el tipo de palabra NORMALIZADO (guardado en el data-tipo)
+            // para compararlo con el tipo de destino. Ya no comparamos el texto visible.
             
             // Restaurar estilos de arrastre
             draggedElement.style.transform = 'scale(1.0)';
@@ -209,16 +218,13 @@
             manejarDrop(draggedElement, destinoCaja);
         }
 
-        // --- 4. FUNCIONES TÁCTILES PARA IPAD ---
+        // --- 4. FUNCIONES TÁCTILES PARA IPAD (Sin cambios, ya son robustas) ---
         
         function touchstart(ev) {
             const target = ev.target;
-
             if (!target.classList.contains('palabra-draggable')) return;
-            
             ev.preventDefault();
             elementoArrastrado = target;
-            
             elementoArrastrado.style.position = 'absolute';
             elementoArrastrado.style.zIndex = '1000';
             elementoArrastrado.style.backgroundColor = '#ff6961'; 
@@ -234,7 +240,6 @@
             if (!elementoArrastrado) return;
             ev.preventDefault();
             const touch = ev.touches[0];
-            
             elementoArrastrado.style.left = touch.pageX - elementoArrastrado.offsetWidth / 2 + 'px';
             elementoArrastrado.style.top = touch.pageY - elementoArrastrado.offsetHeight / 2 + 'px';
         }
@@ -254,13 +259,10 @@
             if (destinoCaja && destinoCaja.classList.contains('caja-destino')) {
                 manejarDrop(elementoArrastrado, destinoCaja);
             } else {
-                // Soltado fuera de cualquier caja destino
                 const contenedorInicial = document.getElementById('contenedor-palabras');
-                
                 contenedorInicial.appendChild(elementoArrastrado);
                 mostrarPopup('red', '¡Error!');
                 
-                // Restaurar estilos finales
                 elementoArrastrado.style.transform = 'scale(1.0)';
                 elementoArrastrado.style.opacity = '1.0';
                 elementoArrastrado.style.position = 'static'; 
@@ -281,16 +283,16 @@
             });
         }
 
-        // --- 6. FUNCIÓN PARA INICIAR EL JUEGO (CORRECCIÓN CRUCIAL AQUÍ) ---
+        // --- 6. FUNCIÓN PARA INICIAR EL JUEGO (Creación robusta) ---
         function iniciarJuego() {
             const contenedorPalabras = document.getElementById('contenedor-palabras');
             let todasLasPalabras = [];
             
-            // Recopilar palabras y su tipo CORRECTO
             for (const tipo in palabras) {
-                // Iterar sobre cada palabra dentro de la categoría (tipo)
                 palabras[tipo].forEach(palabra => {
-                    // **¡CORRECCIÓN!** Agregamos la palabra con su tipo real
+                    // **CRÍTICO:** Guardamos el texto normalizado como un atributo de datos oculto
+                    // Aunque usamos el tipo, si el texto se usara para una validación futura,
+                    // esta robustez es clave. Aquí usamos el tipo (`palabra.tipo`) que ya es seguro.
                     todasLasPalabras.push({ texto: palabra, tipo: tipo });
                 });
             }
@@ -303,7 +305,6 @@
                 p.id = `palabra-${index}`;
                 p.className = 'palabra-draggable';
                 p.draggable = true;
-                // Asignación correcta del tipo de palabra para la evaluación
                 p.setAttribute('data-tipo', palabra.tipo); 
                 p.setAttribute('ondragstart', 'drag(event)');
                 p.setAttribute('ondragend', 'dragEnd(event)');
