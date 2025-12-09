@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clasificación de Palabras para Niños (iPad)</title>
+    
+    <style>
+        /* Estilos Generales */
+        body {
+            font-family: 'Arial Rounded MT Bold', Arial, sans-serif; 
+            background-color: #f0f8ff; 
+            padding: 20px;
+        }
+
+        /* Contenedor de Palabras (Caja de inicio) */
+        #contenedor-palabras {
+            background-color: #ffffff;
+            border: 4px solid #ffcc00; 
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Título */
+        h3 {
+            color: #0056b3;
+        }
+        
+        /* Estilo de las Palabras Arrastrables */
+        .palabra-draggable {
+            display: inline-block;
+            padding: 10px 18px;
+            margin: 8px; 
+            border: 2px solid #6c5ce7; 
+            border-radius: 10px;
+            background-color: #f7f7f7; 
+            color: #333;
+            font-size: 22px; 
+            cursor: grab;
+            user-select: none; 
+            transition: background-color 0.3s, transform 0.2s, opacity 0.2s; 
+            touch-action: none; 
+        }
+
+        /* Contenedor de las Cajas de Destino */
+        .contenedor-cajas {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            flex-wrap: wrap; 
+        }
+
+        /* Estilo de las Cajas de Destino */
+        .caja-destino {
+            flex: 1;
+            min-width: 280px; 
+            border: 3px dashed #10c660; 
+            padding: 20px;
+            margin: 0;
+            min-height: 150px;
+            background-color: #e6ffe6; 
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .caja-destino h4 {
+            color: #007bff; 
+            margin-top: 0;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        /* Efecto al pasar el mouse por la caja */
+        .caja-destino[ondragover]:hover {
+            background-color: #ccffcc; 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="contenedor-palabras">
+        <h3>Arrastra cada palabra a su categoría (¡Solo 6 por grupo!):</h3>
+        </div>
+
+    <div class="contenedor-cajas">
+        <div id="caja-propios" class="caja-destino" data-tipo="propios" 
+             ondrop="drop(event)" ondragover="allowDrop(event)">
+            <h4>Sustantivos Propios</h4>
+        </div>
+
+        <div id="caja-comunes" class="caja-destino" data-tipo="comunes" 
+             ondrop="drop(event)" ondragover="allowDrop(event)">
+            <h4>Sustantivos Comunes</h4>
+        </div>
+
+        <div id="caja-no-sustantivos" class="caja-destino" data-tipo="noSustantivos" 
+             ondrop="drop(event)" ondragover="allowDrop(event)">
+            <h4>No Sustantivos</h4>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURACIÓN DEL JUEGO (6 palabras temáticas para 1er grado) ---
+        const palabras = {
+            propios: ["Juan", "María", "Sol", "Luna", "Chile", "Abril"],
+            comunes: ["Gato", "Casa", "Flor", "Mano", "Comida", "Zapatos"],
+            noSustantivos: ["Saltar", "Feliz", "Beber", "Alto", "Canta", "Lento"]
+        };
+        
+        let elementoArrastrado = null; // Elemento actualmente arrastrado (global)
+
+        // --- 2. FUNCIÓN PARA MANEJAR SONIDOS (Web Audio API) ---
+        function reproducirSonido(tipo) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return; 
+
+            const audioCtx = new AudioContext();
+            const oscilador = audioCtx.createOscillator();
+            const ganancia = audioCtx.createGain();
+
+            oscilador.connect(ganancia);
+            ganancia.connect(audioCtx.destination);
+
+            if (tipo === 'error') {
+                oscilador.frequency.value = 120;
+                oscilador.type = 'sawtooth';
+                ganancia.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                oscilador.start();
+                setTimeout(() => {
+                    oscilador.stop();
+                }, 300); 
+            } else if (tipo === 'exito') {
+                const now = audioCtx.currentTime;
+                oscilador.frequency.setValueAtTime(440, now);
+                ganancia.gain.setValueAtTime(0.3, now);
+                
+                oscilador.start(now);
+                oscilador.stop(now + 0.15);
+                
+                const oscilador2 = audioCtx.createOscillator();
+                oscilador2.connect(audioCtx.destination);
+                oscilador2.frequency.value = 880; 
+                oscilador2.start(now + 0.15);
+                oscilador2.stop(now + 0.3);
+            }
+        }
+
+        // --- 3. FUNCIONES DE ARRASTRE Y SOLTADO ---
+
+        function drag(ev) {
+            elementoArrastrado = ev.target;
+            ev.dataTransfer.setData("text", ev.target.id);
+            ev.target.style.backgroundColor = '#ff6961'; 
+            ev.target.style.transform = 'scale(1.1)'; 
+            ev.target.style.opacity = '0.7'; 
+        }
+
+        function dragEnd(ev) {
+            if (!ev.target.parentElement.classList.contains('caja-destino')) {
+                ev.target.style.backgroundColor = '#f7f7f7'; 
+            }
+            ev.target.style.transform = 'scale(1.0)';
+            ev.target.style.opacity = '1.0';
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+        
+        // --- FUNCIÓN CENTRAL DE SOLTADO (Única) ---
+        function manejarDrop(draggedElement, destinoCaja) {
+            const destinoTipo = destinoCaja.getAttribute('data-tipo');
+            const palabraTipo = draggedElement.getAttribute('data-tipo');
+            
+            if (palabraTipo === destinoTipo) {
+                destinoCaja.appendChild(draggedElement);
+                draggedElement.style.backgroundColor = '#a8e6cf'; 
+                draggedElement.style.color = '#0e4a1a'; 
+                reproducirSonido('exito'); 
+            } else {
+                draggedElement.style.backgroundColor = '#f8d7da'; 
+                reproducirSonido('error'); 
+                
+                setTimeout(() => {
+                    if (!draggedElement.parentElement.classList.contains('caja-destino')) {
+                        draggedElement.style.backgroundColor = '#f7f7f7'; 
+                        draggedElement.style.color = '#333';
+                    }
+                }, 500);
+            }
+            
+            // Restaurar estilos
+            draggedElement.style.transform = 'scale(1.0)';
+            draggedElement.style.opacity = '1.0';
+            draggedElement.style.position = 'static'; 
+            draggedElement.style.left = '0';
+            draggedElement.style.top = '0';
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const draggedElement = document.getElementById(data);
+            
+            const destinoCaja = ev.target.classList.contains('caja-destino') ? ev.target : ev.target.closest('.caja-destino');
+            
+            if (!destinoCaja || !draggedElement) return;
+
+            manejarDrop(draggedElement, destinoCaja);
+        }
+
+        // --- 4. FUNCIONES TÁCTILES PARA IPAD (CRUCIALES) ---
+        
+        function touchstart(ev) {
+            const touch = ev.touches[0];
+            const target = ev.target;
+
+            if (!target.classList.contains('palabra-draggable')) return;
+            
+            ev.preventDefault();
+            elementoArrastrado = target;
+            
+            elementoArrastrado.style.position = 'absolute';
+            elementoArrastrado.style.zIndex = '1000';
+            elementoArrastrado.style.backgroundColor = '#ff6961'; 
+            elementoArrastrado.style.transform = 'scale(1.1)'; 
+            elementoArrastrado.style.opacity = '0.8';
+
+            elementoArrastrado.style.left = touch.pageX - elementoArrastrado.offsetWidth / 2 + 'px';
+            elementoArrastrado.style.top = touch.pageY - elementoArrastrado.offsetHeight / 2 + 'px';
+        }
+
+        function touchmove(ev) {
+            if (!elementoArrastrado) return;
+            ev.preventDefault();
+            const touch = ev.touches[0];
+            
+            elementoArrastrado.style.left = touch.pageX - elementoArrastrado.offsetWidth / 2 + 'px';
+            elementoArrastrado.style.top = touch.pageY - elementoArrastrado.offsetHeight / 2 + 'px';
+        }
+
+        function touchend(ev) {
+            if (!elementoArrastrado) return;
+            ev.preventDefault();
+
+            const touch = ev.changedTouches[0];
+            const destino = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            let destinoCaja = destino;
+            while (destinoCaja && !destinoCaja.classList.contains('caja-destino')) {
+                destinoCaja = destinoCaja.parentElement;
+            }
+
+            if (destinoCaja && destinoCaja.classList.contains('caja-destino')) {
+                manejarDrop(elementoArrastrado, destinoCaja);
+            } else {
+                reproducirSonido('error');
+                
+                setTimeout(() => {
+                    elementoArrastrado.style.backgroundColor = '#f7f7f7'; 
+                    elementoArrastrado.style.color = '#333';
+                    elementoArrastrado.style.position = 'static';
+                    elementoArrastrado.style.transform = 'scale(1.0)';
+                    elementoArrastrado.style.opacity = '1.0';
+                }, 500);
+            }
+
+            elementoArrastrado = null; 
+        }
+        
+        // --- 5. FUNCIÓN PARA ENLAZAR EVENTOS TÁCTILES ---
+        function prepararEventosTactiles() {
+            const palabrasDraggable = document.querySelectorAll('.palabra-draggable');
+            palabrasDraggable.forEach(palabra => {
+                palabra.addEventListener('touchstart', touchstart, false);
+                palabra.addEventListener('touchmove', touchmove, false);
+                palabra.addEventListener('touchend', touchend, false);
+            });
+        }
+
+        // --- 6. FUNCIÓN PARA INICIAR EL JUEGO ---
+        function iniciarJuego() {
+            const contenedorPalabras = document.getElementById('contenedor-palabras');
+            let todasLasPalabras = [];
+            
+            for (const tipo in palabras) {
+                palabras[tipo].forEach(palabra => {
+                    todasLasPalabras.push({ texto: palabra, tipo: tipo });
+                });
+            }
+            
+            todasLasPalabras.sort(() => Math.random() - 0.5);
+            
+            todasLasPalabras.forEach((palabra, index) => {
+                const p = document.createElement('p');
+                p.textContent = palabra.texto;
+                p.id = `palabra-${index}`;
+                p.className = 'palabra-draggable';
+                p.draggable = true;
+                p.setAttribute('data-tipo', palabra.tipo);
+                p.setAttribute('ondragstart', 'drag(event)');
+                p.setAttribute('ondragend', 'dragEnd(event)');
+                contenedorPalabras.appendChild(p);
+            });
+            
+            // Llama a la función de eventos táctiles después de crear las palabras
+            prepararEventosTactiles();
+        }
+
+        window.onload = iniciarJuego;
+    </script>
+</body>
+</html>
