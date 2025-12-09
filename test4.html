@@ -1,124 +1,5 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clasificación de Palabras para Niños (iPad)</title>
-    
-    <style>
-        /* Estilos Generales */
-        body {
-            font-family: 'Arial Rounded MT Bold', Arial, sans-serif; 
-            background-color: #f0f8ff; 
-            padding: 20px;
-        }
-
-        /* Contenedor de Palabras (Caja de inicio) */
-        #contenedor-palabras {
-            background-color: #ffffff;
-            border: 4px solid #ffcc00; 
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            min-height: 100px; 
-        }
-
-        /* Título */
-        h3 {
-            color: #0056b3;
-        }
-        
-        /* Estilo de las Palabras Arrastrables */
-        .palabra-draggable {
-            display: inline-block;
-            padding: 10px 18px;
-            margin: 8px; 
-            border: 2px solid #6c5ce7; 
-            border-radius: 10px;
-            background-color: #f7f7f7; 
-            color: #333;
-            font-size: 22px; 
-            cursor: grab;
-            user-select: none; 
-            transition: background-color 0.3s, transform 0.2s, opacity 0.2s; 
-            touch-action: none; 
-        }
-
-        /* Contenedor de las Cajas de Destino */
-        .contenedor-cajas {
-            display: flex;
-            gap: 20px;
-            justify-content: space-around;
-            flex-wrap: wrap; 
-        }
-
-        /* Estilo de las Cajas de Destino */
-        .caja-destino {
-            flex: 1;
-            min-width: 280px; 
-            border: 3px dashed #10c660; 
-            padding: 20px;
-            margin: 0;
-            min-height: 150px;
-            background-color: #e6ffe6; 
-            border-radius: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        
-        .caja-destino h4 {
-            color: #007bff; 
-            margin-top: 0;
-            font-size: 20px;
-            text-align: center;
-        }
-
-        /* Estilo para el Pop-up de Feedback */
-        #feedback-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 20px 40px;
-            border-radius: 10px;
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            z-index: 2000;
-            opacity: 0; 
-            transition: opacity 0.3s;
-        }
-        .popup-green { background-color: #28a745; }
-        .popup-red { background-color: #dc3545; }
-    </style>
-</head>
-<body>
-
-    <div id="contenedor-palabras">
-        <h3>Arrastra cada palabra a su categoría:</h3>
-    </div>
-
-    <div class="contenedor-cajas">
-        <div id="caja-propios" class="caja-destino" data-tipo="propios" 
-             ondrop="drop(event)" ondragover="allowDrop(event)">
-            <h4>Sustantivos Propios</h4>
-        </div>
-
-        <div id="caja-comunes" class="caja-destino" data-tipo="comunes" 
-             ondrop="drop(event)" ondragover="allowDrop(event)">
-            <h4>Sustantivos Comunes</h4>
-        </div>
-
-        <div id="caja-no-sustantivos" class="caja-destino" data-tipo="noSustantivos" 
-             ondrop="drop(event)" ondragover="allowDrop(event)">
-            <h4>No Sustantivos</h4>
-        </div>
-    </div>
-
-    <script>
-        // --- 1. CONFIGURACIÓN DEL JUEGO (¡CON SUS PALABRAS!) ---
+<script>
+        // --- 1. CONFIGURACIÓN DEL JUEGO (¡SUS PALABRAS!) ---
         const palabras = {
             propios: ["Lauren", "Dilan", "Mexico", "Texas", "McDonalds", "FoodTown"],
             comunes: ["libro", "mesa", "camisa", "silla", "rana", "pato"],
@@ -128,12 +9,6 @@
         let elementoArrastrado = null; 
         let popup = null; 
         
-        // --- FUNCIÓN DE NORMALIZACIÓN (NUEVA Y CRÍTICA PARA IPAD) ---
-        function normalizarTexto(texto) {
-            // Convierte a minúsculas y elimina espacios iniciales/finales
-            return texto.trim().toLowerCase();
-        }
-
         // --- 2. FUNCIÓN PARA MOSTRAR EL POP-UP ---
         function crearPopup() {
             popup = document.createElement('div');
@@ -168,14 +43,11 @@
             ev.preventDefault();
         }
         
-        // --- FUNCIÓN CENTRAL DE SOLTADO (CORRECCIÓN CLAVE AQUÍ) ---
+        // --- FUNCIÓN CENTRAL DE SOLTADO ---
         function manejarDrop(draggedElement, destinoCaja) {
             const destinoTipo = destinoCaja.getAttribute('data-tipo');
             const palabraTipo = draggedElement.getAttribute('data-tipo');
             const contenedorInicial = document.getElementById('contenedor-palabras');
-            
-            // **LA CORRECCIÓN:** La evaluación ahora usa el tipo de palabra NORMALIZADO (guardado en el data-tipo)
-            // para compararlo con el tipo de destino. Ya no comparamos el texto visible.
             
             // Restaurar estilos de arrastre
             draggedElement.style.transform = 'scale(1.0)';
@@ -184,6 +56,7 @@
             draggedElement.style.left = '0';
             draggedElement.style.top = '0';
 
+            // Evaluación de la palabra
             if (palabraTipo === destinoTipo) {
                 // Correcto
                 destinoCaja.appendChild(draggedElement);
@@ -218,7 +91,7 @@
             manejarDrop(draggedElement, destinoCaja);
         }
 
-        // --- 4. FUNCIONES TÁCTILES PARA IPAD (Sin cambios, ya son robustas) ---
+        // --- 4. FUNCIONES TÁCTILES PARA IPAD ---
         
         function touchstart(ev) {
             const target = ev.target;
@@ -277,35 +150,36 @@
         function prepararEventosTactiles() {
             const palabrasDraggable = document.querySelectorAll('.palabra-draggable');
             palabrasDraggable.forEach(palabra => {
-                palabra.addEventListener('touchstart', touchstart, false);
-                palabra.addEventListener('touchmove', touchmove, false);
-                palabra.addEventListener('touchend', touchend, false);
+                // Añadir oyentes táctiles con la opción {passive: false} para asegurar control total en iOS
+                palabra.addEventListener('touchstart', touchstart, { passive: false });
+                palabra.addEventListener('touchmove', touchmove, { passive: false });
+                palabra.addEventListener('touchend', touchend, { passive: false });
             });
         }
 
-        // --- 6. FUNCIÓN PARA INICIAR EL JUEGO (Creación robusta) ---
+        // --- 6. FUNCIÓN PARA INICIAR EL JUEGO (CORRECCIÓN CRUCIAL DE ASIGNACIÓN) ---
         function iniciarJuego() {
             const contenedorPalabras = document.getElementById('contenedor-palabras');
             let todasLasPalabras = [];
             
+            // Llenar la lista de todas las palabras
             for (const tipo in palabras) {
                 palabras[tipo].forEach(palabra => {
-                    // **CRÍTICO:** Guardamos el texto normalizado como un atributo de datos oculto
-                    // Aunque usamos el tipo, si el texto se usara para una validación futura,
-                    // esta robustez es clave. Aquí usamos el tipo (`palabra.tipo`) que ya es seguro.
                     todasLasPalabras.push({ texto: palabra, tipo: tipo });
                 });
             }
             
             todasLasPalabras.sort(() => Math.random() - 0.5);
             
-            todasLasPalabras.forEach((palabra, index) => {
+            // Crear los elementos HTML
+            todasLasPalabras.forEach((palabraObj, index) => {
                 const p = document.createElement('p');
-                p.textContent = palabra.texto;
+                p.textContent = palabraObj.texto;
                 p.id = `palabra-${index}`;
                 p.className = 'palabra-draggable';
                 p.draggable = true;
-                p.setAttribute('data-tipo', palabra.tipo); 
+                // ASIGNACIÓN CRUCIAL: Usamos palabraObj.tipo para el data-tipo
+                p.setAttribute('data-tipo', palabraObj.tipo); 
                 p.setAttribute('ondragstart', 'drag(event)');
                 p.setAttribute('ondragend', 'dragEnd(event)');
                 contenedorPalabras.appendChild(p);
@@ -317,5 +191,3 @@
 
         window.onload = iniciarJuego;
     </script>
-</body>
-</html>
