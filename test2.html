@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clasificación de Palabras para Niños (iPad)</title>
+    
+    <style>
+        /* Estilos Generales */
+        body {
+            font-family: 'Arial Rounded MT Bold', Arial, sans-serif; /* Fuente amigable */
+            background-color: #f0f8ff; /* Fondo azul claro */
+            padding: 20px;
+        }
+
+        /* Contenedor de Palabras (Caja de inicio) */
+        #contenedor-palabras {
+            background-color: #ffffff;
+            border: 4px solid #ffcc00; /* Borde amarillo brillante */
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Título */
+        h3 {
+            color: #0056b3;
+        }
+        
+        /* Estilo de las Palabras Arrastrables */
+        .palabra-draggable {
+            display: inline-block;
+            padding: 10px 18px;
+            margin: 8px; /* Más separación para iPad */
+            border: 2px solid #6c5ce7; /* Borde morado */
+            border-radius: 10px;
+            background-color: #f7f7f7; /* Color base */
+            color: #333;
+            font-size: 22px; /* Letra grande para visibilidad */
+            cursor: grab;
+            user-select: none; /* Previene selección de texto en arrastre */
+            transition: background-color 0.3s, transform 0.2s, opacity 0.2s; /* Animaciones fluidas */
+            touch-action: none; /* Importante para dispositivos táctiles */
+        }
+
+        /* Contenedor de las Cajas de Destino */
+        .contenedor-cajas {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            flex-wrap: wrap; /* Para que se adapten mejor en pantallas pequeñas */
+        }
+
+        /* Estilo de las Cajas de Destino */
+        .caja-destino {
+            flex: 1;
+            min-width: 280px; /* Asegura un buen tamaño en iPad */
+            border: 3px dashed #10c660; /* Borde verde claro */
+            padding: 20px;
+            margin: 0;
+            min-height: 150px;
+            background-color: #e6ffe6; /* Fondo verde muy claro */
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .caja-destino h4 {
+            color: #007bff; /* Título azul brillante */
+            margin-top: 0;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        /* Efecto al pasar el mouse por la caja */
+        .caja-destino[ondragover]:hover {
+            background-color: #ccffcc; /* Verde un poco más oscuro al arrastrar sobre ella */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="contenedor-palabras">
+        <h3>Arrastra cada palabra a su categoría (¡Solo 6 por grupo!):</h3>
+        </div>
+
+    <div class="contenedor-cajas">
+        <div id="caja-propios" class="caja-destino" data-tipo="propios" 
+             ondrop="drop(event)" ondragover="allowDrop(event)">
+            <h4>Sustantivos Propios</h4>
+        </div>
+
+        <div id="caja-comunes" class="caja-destino" data-tipo="comunes" 
+             ondrop="drop(event)" ondragover="allowDrop(event)">
+            <h4>Sustantivos Comunes</h4>
+        </div>
+
+        <div id="caja-no-sustantivos" class="caja-destino" data-tipo="noSustantivos" 
+             ondrop="drop(event)" ondragover="allowDrop(event)">
+            <h4>No Sustantivos</h4>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURACIÓN DEL JUEGO (6 palabras temáticas para 1er grado) ---
+        const palabras = {
+            propios: ["Juan", "María", "Sol", "Luna", "Chile", "Abril"],
+            comunes: ["Gato", "Casa", "Flor", "Mano", "Comida", "Zapatos"],
+            noSustantivos: ["Saltar", "Feliz", "Beber", "Alto", "Canta", "Lento"]
+        };
+
+        // --- 2. FUNCIÓN PARA MANEJAR SONIDOS (Web Audio API) ---
+        function reproducirSonido(tipo) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return; 
+
+            const audioCtx = new AudioContext();
+            const oscilador = audioCtx.createOscillator();
+            const ganancia = audioCtx.createGain();
+
+            oscilador.connect(ganancia);
+            ganancia.connect(audioCtx.destination);
+
+            if (tipo === 'error') {
+                // Sonido de error (pitido bajo)
+                oscilador.frequency.value = 120;
+                oscilador.type = 'sawtooth';
+                ganancia.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                oscilador.start();
+                setTimeout(() => {
+                    oscilador.stop();
+                }, 300); 
+            } else if (tipo === 'exito') {
+                // Sonido de check/éxito (Doble pitido rápido para efecto "Tada")
+                const now = audioCtx.currentTime;
+                oscilador.frequency.setValueAtTime(440, now);
+                ganancia.gain.setValueAtTime(0.3, now);
+                
+                oscilador.start(now);
+                oscilador.stop(now + 0.15);
+                
+                const oscilador2 = audioCtx.createOscillator();
+                oscilador2.connect(audioCtx.destination);
+                oscilador2.frequency.value = 880; 
+                oscilador2.start(now + 0.15);
+                oscilador2.stop(now + 0.3);
+            }
+        }
+
+
+        // --- 3. FUNCIONES DE ARRASTRE Y SOLTADO ---
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            
+            // Efecto de arrastre visible (color y escala)
+            ev.target.style.backgroundColor = '#ff6961'; 
+            ev.target.style.transform = 'scale(1.1)'; 
+            ev.target.style.opacity = '0.7'; 
+        }
+
+        function dragEnd(ev) {
+            // Restaurar el estilo base si no fue soltado en un destino válido
+            if (!ev.target.parentElement.classList.contains('caja-destino')) {
+                ev.target.style.backgroundColor = '#f7f7f7'; 
+            }
+            ev.target.style.transform = 'scale(1.0)';
+            ev.target.style.opacity = '1.0';
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const draggedElement = document.getElementById(data);
+            
+            // Encuentra la caja destino real (por si se soltó sobre un título o palabra dentro)
+            const destinoCaja = ev.target.classList.contains('caja-destino') ? ev.target : ev.target.closest('.caja-destino');
+            
+            if (!destinoCaja) return; 
+
+            const destinoTipo = destinoCaja.getAttribute('data-tipo');
+            const palabraTipo = draggedElement.getAttribute('data-tipo');
+            
+            if (palabraTipo === destinoTipo) {
+                // Soltar Correcto
+                destinoCaja.appendChild(draggedElement);
+                draggedElement.style.backgroundColor = '#a8e6cf'; // Verde suave (Éxito)
+                draggedElement.style.color = '#0e4a1a'; 
+                reproducirSonido('exito'); 
+            } else {
+                // Soltar Incorrecto
+                draggedElement.style.backgroundColor = '#f8d7da'; // Rojo claro (Error)
+                reproducirSonido('error'); 
+                
+                // Restaurar el color base después de medio segundo
+                setTimeout(() => {
+                    // Solo restaurar si la palabra sigue en el contenedor inicial
+                    if (!draggedElement.parentElement.classList.contains('caja-destino')) {
+                        draggedElement.style.backgroundColor = '#f7f7f7'; 
+                        draggedElement.style.color = '#333';
+                    }
+                }, 500);
+            }
+            
+            // Restaurar estilos visuales finales del arrastre
+            draggedElement.style.transform = 'scale(1.0)';
+            draggedElement.style.opacity = '1.0';
+        }
+
+        // --- 4. FUNCIÓN PARA INICIAR EL JUEGO (Creación dinámica de palabras) ---
+        function iniciarJuego() {
+            const contenedorPalabras = document.getElementById('contenedor-palabras');
+            let todasLasPalabras = [];
+            
+            // Recopilar todas las palabras con su tipo
+            for (const tipo in palabras) {
+                palabras[tipo].forEach(palabra => {
+                    todasLasPalabras.push({ texto: palabra, tipo: tipo });
+                });
+            }
+            
+            // Desordenar la lista
+            todasLasPalabras.sort(() => Math.random() - 0.5);
+            
+            // Crear el elemento P para cada palabra
+            todasLasPalabras.forEach((palabra, index) => {
+                const p = document.createElement('p');
+                p.textContent = palabra.texto;
+                p.id = `palabra-${index}`;
+                p.className = 'palabra-draggable';
+                p.draggable = true;
+                p.setAttribute('data-tipo', palabra.tipo);
+                p.setAttribute('ondragstart', 'drag(event)');
+                p.setAttribute('ondragend', 'dragEnd(event)');
+                contenedorPalabras.appendChild(p);
+            });
+        }
+
+        // Llamar a la función al cargar la página
+        window.onload = iniciarJuego;
+    </script>
+
+</body>
+</html>
