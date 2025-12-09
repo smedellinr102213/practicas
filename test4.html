@@ -43,7 +43,7 @@
             cursor: grab;
             user-select: none; 
             transition: background-color 0.3s, transform 0.2s, opacity 0.2s; 
-            touch-action: none; 
+            touch-action: none; /* Crucial para evitar conflictos con el scroll en iPad */
         }
 
         /* Contenedor de las Cajas de Destino */
@@ -74,11 +74,6 @@
             text-align: center;
         }
 
-        /* Efecto al pasar el mouse por la caja */
-        .caja-destino[ondragover]:hover {
-            background-color: #ccffcc; 
-        }
-
         /* Estilo para el Pop-up de Feedback */
         #feedback-popup {
             position: fixed;
@@ -92,7 +87,7 @@
             font-weight: bold;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             z-index: 2000;
-            opacity: 0; /* Empieza invisible */
+            opacity: 0; 
             transition: opacity 0.3s;
         }
         .popup-green { background-color: #28a745; }
@@ -123,7 +118,7 @@
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN DEL JUEGO (¡CON SUS NUEVAS PALABRAS!) ---
+        // --- 1. CONFIGURACIÓN DEL JUEGO (¡CON SUS PALABRAS!) ---
         const palabras = {
             propios: ["Lauren", "Dilan", "Mexico", "Texas", "McDonalds", "FoodTown"],
             comunes: ["libro", "mesa", "camisa", "silla", "rana", "pato"],
@@ -148,7 +143,6 @@
             popup.classList.add('popup-' + tipo);
             popup.style.opacity = '1';
 
-            // Ocultar el popup después de 1 segundo
             setTimeout(() => {
                 popup.style.opacity = '0';
             }, 1000);
@@ -164,10 +158,6 @@
             ev.target.style.opacity = '0.7'; 
         }
 
-        function dragEnd(ev) {
-            // Se mantiene el evento dragEnd para la compatibilidad con ratón
-        }
-
         function allowDrop(ev) {
             ev.preventDefault();
         }
@@ -178,7 +168,7 @@
             const palabraTipo = draggedElement.getAttribute('data-tipo');
             const contenedorInicial = document.getElementById('contenedor-palabras');
             
-            // 1. Restaurar estilos de arrastre
+            // Restaurar estilos de arrastre
             draggedElement.style.transform = 'scale(1.0)';
             draggedElement.style.opacity = '1.0';
             draggedElement.style.position = 'static'; 
@@ -186,15 +176,15 @@
             draggedElement.style.top = '0';
 
             if (palabraTipo === destinoTipo) {
-                // Correcto: Palabra se queda en la caja
+                // Correcto
                 destinoCaja.appendChild(draggedElement);
                 draggedElement.style.backgroundColor = '#a8e6cf'; 
                 draggedElement.style.color = '#0e4a1a'; 
                 mostrarPopup('green', '¡Correcto!'); 
             } else {
-                // Incorrecto: Palabra vuelve al contenedor inicial
+                // Incorrecto
                 contenedorInicial.appendChild(draggedElement); 
-                draggedElement.style.backgroundColor = '#f7f7f7'; // Restaurar color base
+                draggedElement.style.backgroundColor = '#f7f7f7'; 
                 draggedElement.style.color = '#333';
                 mostrarPopup('red', '¡Error!'); 
             }
@@ -229,7 +219,6 @@
             ev.preventDefault();
             elementoArrastrado = target;
             
-            // Inicia la visualización de arrastre
             elementoArrastrado.style.position = 'absolute';
             elementoArrastrado.style.zIndex = '1000';
             elementoArrastrado.style.backgroundColor = '#ff6961'; 
@@ -263,13 +252,11 @@
             }
 
             if (destinoCaja && destinoCaja.classList.contains('caja-destino')) {
-                // Soltado en una caja destino
                 manejarDrop(elementoArrastrado, destinoCaja);
             } else {
                 // Soltado fuera de cualquier caja destino
                 const contenedorInicial = document.getElementById('contenedor-palabras');
                 
-                // Muestra error visual, regresa al inicio, y restaura estilos
                 contenedorInicial.appendChild(elementoArrastrado);
                 mostrarPopup('red', '¡Error!');
                 
@@ -294,13 +281,16 @@
             });
         }
 
-        // --- 6. FUNCIÓN PARA INICIAR EL JUEGO ---
+        // --- 6. FUNCIÓN PARA INICIAR EL JUEGO (CORRECCIÓN CRUCIAL AQUÍ) ---
         function iniciarJuego() {
             const contenedorPalabras = document.getElementById('contenedor-palabras');
             let todasLasPalabras = [];
             
+            // Recopilar palabras y su tipo CORRECTO
             for (const tipo in palabras) {
+                // Iterar sobre cada palabra dentro de la categoría (tipo)
                 palabras[tipo].forEach(palabra => {
+                    // **¡CORRECCIÓN!** Agregamos la palabra con su tipo real
                     todasLasPalabras.push({ texto: palabra, tipo: tipo });
                 });
             }
@@ -313,8 +303,8 @@
                 p.id = `palabra-${index}`;
                 p.className = 'palabra-draggable';
                 p.draggable = true;
-                // El atributo data-tipo ahora usa sus palabras y es la clave para la evaluación
-                p.setAttribute('data-tipo', tipo); 
+                // Asignación correcta del tipo de palabra para la evaluación
+                p.setAttribute('data-tipo', palabra.tipo); 
                 p.setAttribute('ondragstart', 'drag(event)');
                 p.setAttribute('ondragend', 'dragEnd(event)');
                 contenedorPalabras.appendChild(p);
