@@ -1,4 +1,4 @@
-// 1. Datos de la Práctica (¡ACTUALIZADO CON TU LISTA!)
+// 1. Datos de la Práctica 
 const allWords = [
     // SUSTANTIVOS PROPIOS (category: "propio")
     { text: "Maria", category: "propio" },
@@ -111,27 +111,31 @@ wordBank.addEventListener('touchmove', function(e) {
 
 wordBank.addEventListener('touchend', function(e) {
     if (draggedElement) {
-        // En touch-end, obtenemos el punto donde se levantó el dedo
-        const touch = e.changedTouches[0];
-        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        // CORRECCIÓN FINAL DE TOLERANCIA: Obtenemos las coordenadas del centro del elemento arrastrado.
+        const rect = draggedElement.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // Ahora obtenemos el elemento que está debajo del centro del objeto
+        const targetElement = document.elementFromPoint(centerX, centerY);
         
         let targetZone = null;
         
-        // CORRECCIÓN CRÍTICA: Usamos .closest() para buscar el ancestro con la clase 'drop-zone'.
-        // Esto captura la zona correcta aunque se suelte sobre el título (h3) o sobre otra palabra.
+        // Usamos .closest() para buscar el contenedor de soltar
         if (targetElement) {
             targetZone = targetElement.closest('.drop-zone');
         }
 
         if (targetZone) {
-            // Se soltó en una zona
+            // Se soltó en una zona válida
             handleDrop(draggedElement, targetZone);
         } else {
             // No se soltó en una zona válida, regresa al banco de palabras
             returnToBank(draggedElement);
         }
 
-        // Restablecer el estado y la posición (importante para evitar glitches visuales)
+        // Restablecer el estado
         draggedElement.classList.remove('dragging');
         draggedElement.style.position = 'relative'; 
         draggedElement.style.left = '';
