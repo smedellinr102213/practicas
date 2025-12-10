@@ -40,25 +40,41 @@ main {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.draggable-word {
+.selectable-word {
     padding: 10px 15px;
-    background-color: #a0d2eb; /* Un azul claro */
+    background-color: #a0d2eb; /* Azul claro (Normal) */
     color: #1c3144;
     border-radius: 20px;
-    cursor: grab;
-    user-select: none; /* Evita seleccionar el texto al arrastrar */
+    cursor: pointer; /* Indica que se puede hacer clic */
+    user-select: none; 
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.1s ease;
+    transition: transform 0.1s, background-color 0.3s, box-shadow 0.3s;
+    border: 2px solid transparent;
 }
 
-.draggable-word:active, .draggable-word.dragging {
-    cursor: grabbing;
-    opacity: 0.8;
+/* ESTADO DE SELECCIÓN */
+.selectable-word.selected {
+    background-color: #FFC107; /* Amarillo para indicar selección activa */
+    color: #333;
+    border: 2px solid #FF9800;
     transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* --- ZONAS DE SOLTAR --- */
+/* ESTADOS DE COLOCACIÓN (Feedback Visual) */
+.selectable-word.correct {
+    background-color: #4CAF50; /* Verde */
+    color: white;
+    border-color: #388E3C;
+}
+
+.selectable-word.incorrect {
+    background-color: #F44336; /* Rojo */
+    color: white;
+    border-color: #D32F2F;
+}
+
+/* --- ZONAS DE COLOCACIÓN --- */
 
 #drop-zones-container {
     display: grid;
@@ -72,7 +88,7 @@ main {
     border: 2px dashed #ccc;
     border-radius: 10px;
     background-color: #fff;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s, background-color 0.3s;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -81,30 +97,21 @@ main {
     margin-bottom: 15px;
     font-size: 1.2em;
     color: #4CAF50;
-    /* CRÍTICO PARA DETECCIÓN EN TOUCH: Ignora el texto del encabezado */
-    pointer-events: none; 
 }
 
-/* Estilos específicos para las palabras una vez colocadas */
-.drop-zone .draggable-word {
+/* Las palabras colocadas */
+.drop-zone .selectable-word {
     margin: 5px;
     cursor: default;
-    background-color: #e0f7e9; /* Un verde muy claro */
-    color: #2e7d32;
     opacity: 1; 
+    pointer-events: auto; /* Permite que el estudiante vuelva a tocarla */
+    display: inline-block; /* Para que se vean una junto a la otra */
 }
 
-/* Estilo para las palabras que ya están colocadas */
-.placed {
-    cursor: default;
-    opacity: 0.8;
-    /* CRÍTICO: No dejes que la palabra colocada bloquee la detección del drop zone */
-    pointer-events: none;
-}
-
-/* --- FEEDBACK --- */
+/* --- FEEDBACK POPUP --- */
 
 #feedback-message {
+    /* (Se mantiene el estilo del feedback para que aparezca el mensaje de Error o Correcto) */
     position: fixed;
     top: 50%;
     left: 50%;
@@ -125,14 +132,13 @@ main {
 }
 
 .feedback.correct {
-    background-color: #4CAF50; /* Verde */
+    background-color: #4CAF50;
 }
 
 .feedback.incorrect {
-    background-color: #f44336; /* Rojo */
+    background-color: #f44336;
 }
 
-/* Media Queries para dispositivos pequeños */
 @media (max-width: 768px) {
     #drop-zones-container {
         grid-template-columns: 1fr;
