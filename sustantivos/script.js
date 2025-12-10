@@ -25,67 +25,123 @@ const allWords = [
     { text: "lee", category: "no-sustantivo" },
 ];
 
-// 2. Referencias del DOM usando jQuery
-const wordBank = $('#word-bank');
-const dropZones = $('.drop-zone');
-const feedbackMessage = $('#feedback-message');
+// 2. Referencias del DOM
+const wordBank = document.getElementById('word-bank');
+const dropZones = document.querySelectorAll('.drop-zone');
+const feedbackMessage = document.getElementById('feedback-message');
 
-// Muestra el popup de feedback (correcto/incorrecto)
+let selectedWord = null; // Palabra actualmente seleccionada/activa
+
+// 3. Funciones de Feedback Visual
 function showFeedback(isCorrect, message) {
-    feedbackMessage.text(message);
-    feedbackMessage.removeClass().addClass('feedback show ' + (isCorrect ? 'correct' : 'incorrect'));
+    feedbackMessage.textContent = message;
+    feedbackMessage.className = 'feedback show ' + (isCorrect ? 'correct' : 'incorrect');
 
-    // Desaparece el mensaje después de 1.5 segundos
     setTimeout(function() {
-        feedbackMessage.removeClass().addClass('feedback');
+        feedbackMessage.className = 'feedback';
     }, 1500);
 }
 
-// Lógica de Soltar y Verificar 
-function handleDrop(element, zone) {
-    const isCorrect = element.data('category') === $(zone).data('category');
+// 4. Lógica de Tocar para Seleccionar (Banco de Palabras)
+function handleWordSelection(event) {
+    const targetWord = event.target;
     
-    if (isCorrect) {
-        // Correcto: Mueve la palabra a la zona
-        $(zone).append(element);
-        element.addClass('placed').draggable('disable'); // Desactiva el arrastre
-        showFeedback(true, '¡Correcto!');
+    // Si ya está en una zona de soltar y es correcta, no hacemos nada (o podríamos permitir que la saquen si lo deseas)
+    if (targetWord.classList.contains('correct')) {
+        return; 
+    }
+
+    // Deseleccionar la palabra que estaba activa
+    if (selectedWord) {
+        selectedWord.classList.remove('selected');
+    }
+
+    // Seleccionar la nueva palabra
+    if (selectedWord !== targetWord) {
+        selectedWord = targetWord;
+        selectedWord.classList.add('selected');
     } else {
-        // Incorrecto: Muestra error. La palabra vuelve sola por la opción 'revert: true'
-        showFeedback(false, '¡Error! Inténtalo de nuevo.');
+        // Si toca la misma palabra dos veces, la deseleccionamos
+        selectedWord = null;
     }
 }
 
+// 5. Lógica de Tocar para Colocar (Zonas de Soltar)
+function handleZonePlacement(event) {
+    if (!selectedWord) {
+        showFeedback(false, '¡Selecciona una palabra primero!');
+        return;
+    }
 
-// Inicializa las palabras y les da funcionalidad de arrastre
-function initializeWords() {
+    const targetZone = event.currentTarget; // Usamos currentTarget para asegurarnos de que es el .drop-zone
+    const wordCategory = selectedWord.dataset.category;
+    const zoneCategory = targetZone.dataset.category;
+    
+    const isCorrect = wordCategory === zoneCategory;
+
+    // 1. Mover el elemento y aplicar feedback visual
+    targetZone.appendChild(selectedWord);
+    selectedWord.classList.remove('selected');
+    
+    // 2. Aplicar el color (verde/rojo)
+    selectedWord.classList.remove('correct', 'incorrect'); // Limpia colores viejos
+    selectedWord.classList.add(isCorrect ? 'correct' : 'incorrect');
+    
+    // 3. Mostrar el mensaje
+    showFeedback(isCorrect, isCorrect ? '¡Correcto!' : '¡Incorrecto! Intenta otra categoría.');
+
+    // 4. Deseleccionar la palabra para el siguiente turno
+    selectedWord = null;
+}
+
+
+// 6. Inicialización de la Aplicación
+function initializeApp() {
+    // A. Crea e inicializa las palabras
     allWords.forEach(function(word) {
-        // Creamos la palabra
-        const wordDiv = $('<div>')
-            .text(word.text)
-            .addClass('draggable-word')
-            .data('category', word.category);
-            
-        // La hacemos DRAGGABLE (Arrastrable)
-        wordDiv.draggable({
-            revert: true, // Vuelve al inicio si no es soltada correctamente
-            cursor: 'grabbing',
-            zIndex: 1000
-        });
-
-        wordBank.append(wordDiv);
+        const wordDiv = document.createElement('div');
+        wordDiv.textContent = word.text;
+        // Cambiamos la clase a 'selectable-word'
+        wordDiv.className = 'selectable-word'; 
+        wordDiv.dataset.category = word.category;
+        wordBank.appendChild(wordDiv);
     });
 
-    // Hacemos que las zonas de soltar sean DROPPABLE
-    dropZones.droppable({
-        accept: '.draggable-word', 
-        drop: function(event, ui) {
-            handleDrop(ui.draggable, this); // ui.draggable es la palabra arrastrada
+    // B. Añade los listeners de eventos
+
+    // Listener para SELECCIONAR (en el banco de palabras)
+    wordBank.addEventListener('click', function(e) {
+        if (e.target.classList.contains('selectable-word')) {
+            handleWordSelection(e);
         }
+    });
+
+    // Listener para COLOCAR (en las zonas de soltar)
+    dropZones.forEach(function(zone) {
+        zone.addEventListener('click', handleZonePlacement);
+    });
+
+    // Listener para REUBICAR (Si el estudiante toca una palabra colocada)
+    dropZones.forEach(function(zone) {
+        zone.addEventListener('click', function(e) {
+            // Si tocamos una palabra colocada, la seleccionamos para reubicarla.
+            if (e.target.classList.contains('selectable-word') && !e.target.classList.contains('selected')) {
+                // Primero, movemos la palabra de vuelta al banco para que el estudiante pueda reubicarla
+                returnToBank(e.target);
+                // Luego la seleccionamos
+                handleWordSelection(e);
+            }
+        });
     });
 }
 
-// Inicializa la aplicación cuando el documento está listo
-$(function() {
-    initializeWords();
-});
+// Función auxiliar para mover una palabra al banco
+function returnToBank(element) {
+    // Limpia los estados de color y selección
+    element.classList.remove('correct', 'incorrect', 'selected');
+    // Mueve al banco
+    wordBank.appendChild(element); 
+}
+
+// Inicia la aplicación al cargar
+initializeApp();
