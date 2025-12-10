@@ -84,22 +84,18 @@ dropZones.forEach(function(zone) {
 });
 
 // --- B. Eventos Táctiles (CRÍTICO PARA IPAD/IOS) ---
-let touchStartX = 0;
-let touchStartY = 0;
 
 wordBank.addEventListener('touchstart', function(e) {
     const touch = e.touches[0];
     if (touch && touch.target.classList.contains('draggable-word')) {
         draggedElement = touch.target;
-        // Posición inicial del toque
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
         
         // Preparar para mover
         draggedElement.style.position = 'absolute';
         draggedElement.style.zIndex = 1000;
+        draggedElement.classList.add('dragging'); // Añadir clase visual
     }
-}, {passive: false}); // passive: false es importante para touchmove y preventDefault
+}, {passive: false}); 
 
 wordBank.addEventListener('touchmove', function(e) {
     if (draggedElement) {
@@ -115,12 +111,15 @@ wordBank.addEventListener('touchmove', function(e) {
 
 wordBank.addEventListener('touchend', function(e) {
     if (draggedElement) {
-        // En touch-end, verificamos si está sobre una zona de soltar
+        // En touch-end, obtenemos el punto donde se levantó el dedo
         const touch = e.changedTouches[0];
         const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
         
         let targetZone = null;
-        if (targetElement && targetElement.closest('.drop-zone')) {
+        
+        // CORRECCIÓN CRÍTICA: Usamos .closest() para buscar el ancestro con la clase 'drop-zone'.
+        // Esto captura la zona correcta aunque se suelte sobre el título (h3) o sobre otra palabra.
+        if (targetElement) {
             targetZone = targetElement.closest('.drop-zone');
         }
 
@@ -128,18 +127,19 @@ wordBank.addEventListener('touchend', function(e) {
             // Se soltó en una zona
             handleDrop(draggedElement, targetZone);
         } else {
-            // No se soltó en una zona, regresa al banco de palabras
+            // No se soltó en una zona válida, regresa al banco de palabras
             returnToBank(draggedElement);
         }
 
-        // Restablecer el estado
-        draggedElement.style.position = 'relative'; // Volver a flujo normal (o usar 'static')
+        // Restablecer el estado y la posición (importante para evitar glitches visuales)
+        draggedElement.classList.remove('dragging');
+        draggedElement.style.position = 'relative'; 
         draggedElement.style.left = '';
         draggedElement.style.top = '';
-        draggedElement.style.zIndex = 10;
+        draggedElement.style.zIndex = '';
         draggedElement = null;
     }
-});
+}, {passive: false});
 
 // --- C. Lógica de Soltar y Verificar ---
 function handleDrop(element, zone) {
