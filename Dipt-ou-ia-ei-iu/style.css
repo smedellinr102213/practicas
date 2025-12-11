@@ -1,0 +1,150 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    color: #333;
+    text-align: center;
+}
+
+header {
+    background-color: #5cb85c; /* Verde amigable */
+    color: white;
+    padding: 20px 0;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+main {
+    max-width: 1400px; /* Aumentado para las 4 cajas */
+    margin: 0 auto;
+    padding: 10px;
+}
+
+/* --- BANCO DE PALABRAS --- */
+
+#word-bank-container h2 {
+    color: #007bff;
+    margin-bottom: 15px;
+}
+
+#word-bank {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.selectable-word {
+    padding: 10px 18px;
+    background-color: #d9edf7; /* Azul claro (Normal) */
+    color: #31708f;
+    border-radius: 25px;
+    cursor: pointer; 
+    user-select: none; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s, background-color 0.3s, box-shadow 0.3s, border 0.3s;
+    border: 2px solid transparent;
+    font-weight: bold; /* Más fácil de leer para primer grado */
+}
+
+/* ESTADO DE SELECCIÓN */
+.selectable-word.selected {
+    background-color: #ffc107; /* Amarillo para indicar selección activa */
+    color: #333;
+    border: 2px solid #ff9800;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ESTADOS DE COLOCACIÓN (Feedback Visual) */
+.selectable-word.correct {
+    background-color: #5cb85c; /* Verde */
+    color: white;
+    border-color: #4cae4c;
+}
+
+.selectable-word.incorrect {
+    background-color: #d9534f; /* Rojo */
+    color: white;
+    border-color: #d43f3a;
+}
+
+/* --- ZONAS DE COLOCACIÓN --- */
+
+#drop-zones-container {
+    display: grid;
+    /* Divide el espacio en 4 columnas iguales para las 4 cajas */
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 15px;
+}
+
+.drop-zone {
+    min-height: 250px;
+    padding: 15px;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    background-color: #fff;
+    transition: border-color 0.3s, background-color 0.3s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.drop-zone h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    color: #007bff;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* Las palabras colocadas */
+.drop-zone .selectable-word {
+    margin: 5px;
+    cursor: default;
+    opacity: 1; 
+    pointer-events: auto; 
+    display: inline-block; 
+}
+
+/* --- FEEDBACK POPUP (Se mantiene) --- */
+
+#feedback-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px 40px;
+    border-radius: 10px;
+    font-size: 1.5em;
+    color: white;
+    z-index: 1001;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+#feedback-message.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.feedback.correct {
+    background-color: #5cb85c;
+}
+
+.feedback.incorrect {
+    background-color: #d9534f;
+}
+
+/* Media Queries para dispositivos pequeños (las cajas se apilan) */
+@media (max-width: 900px) {
+    #drop-zones-container {
+        grid-template-columns: 1fr;
+    }
+}
