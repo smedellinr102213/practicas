@@ -65,11 +65,11 @@ const dropZones = document.querySelectorAll('.drop-zone');
 const feedbackMessage = document.getElementById('feedback-message');
 const errorCountDisplay = document.getElementById('error-count');
 
-let selectedWord = null;
-let errorCount = 0; // Contador ACUMULATIVO
-let currentBlock = 1; // 1 (Bloque inicial) o 2 (Bloque final)
+let selectedWord = null; // ¡CRÍTICO!: Referencia al elemento DIV seleccionado.
+let errorCount = 0; 
+let currentBlock = 1;
 const totalBlocks = 2; 
-const wordsPerBlock = 20; // 5 palabras * 4 categorías
+const wordsPerBlock = 20;
 
 // 3. Funciones de Feedback y Conteo de Errores
 function updateErrorCount(isCorrect) {
@@ -80,7 +80,6 @@ function updateErrorCount(isCorrect) {
 }
 
 function showFeedback(isCorrect, message) {
-    // Si ya estamos mostrando el mensaje final, no mostrar feedback individual
     if (feedbackMessage.classList.contains('final-message')) return; 
 
     feedbackMessage.textContent = message;
@@ -92,33 +91,59 @@ function showFeedback(isCorrect, message) {
 }
 
 function showFinalMessage() {
-    // 1. Mostrar el mensaje final morado (Total acumulado)
     feedbackMessage.style.backgroundColor = '#673ab7'; 
     feedbackMessage.textContent = `¡Práctica Terminada! Errores totales (Bloque 1 y 2): ${errorCount}. Llévalo a tu maestro para revisión. (Toca aquí para Reiniciar)`;
     feedbackMessage.classList.add('show', 'final-message');
     
-    // 2. Pausar la interacción
+    // Pausar la interacción del banco de palabras
     wordBank.style.pointerEvents = 'none';
 }
 
 
-// 4. Lógica de Tocar para Colocar (Main Handler)
+// 4. Lógica de Tocar para Seleccionar (Banco de Palabras)
+function handleWordSelection(event) {
+    const targetWord = event.target;
+    
+    if (targetWord.classList.contains('correct')) {
+        return; 
+    }
+
+    // Deseleccionar la palabra que estaba activa
+    if (selectedWord) {
+        selectedWord.classList.remove('selected');
+    }
+
+    // Seleccionar la nueva palabra
+    if (selectedWord !== targetWord) {
+        selectedWord = targetWord;
+        selectedWord.classList.add('selected');
+    } else {
+        // Si toca la misma palabra dos veces, la deseleccionamos
+        selectedWord = null;
+    }
+}
+
+
+// 5. Lógica de Tocar para Colocar (Zonas de Soltar)
 function handleZonePlacement(event) {
+    // CORRECCIÓN CLAVE: Verificar selectedWord antes de nada
     if (!selectedWord) {
         showFeedback(false, '¡Selecciona una palabra primero!');
         return;
     }
 
+    // Se asegura de que el objetivo sea la zona de soltar (y no un elemento dentro)
     const targetZone = event.currentTarget; 
+    
     const wordCategory = selectedWord.dataset.category;
     const zoneCategory = targetZone.dataset.category;
     
     const isCorrect = wordCategory === zoneCategory;
 
-    // 1. Contador de Errores (Acumulativo)
+    // 1. Contador de Errores
     updateErrorCount(isCorrect); 
 
-    // 2. Mover, deseleccionar y aplicar el color
+    // 2. Mover el elemento y aplicar feedback visual
     targetZone.appendChild(selectedWord);
     selectedWord.classList.remove('selected');
     selectedWord.classList.remove('correct', 'incorrect'); 
@@ -127,14 +152,15 @@ function handleZonePlacement(event) {
     // 3. Mostrar el mensaje
     showFeedback(isCorrect, isCorrect ? '¡Correcto!' : '¡Incorrecto! Intenta otra caja.');
 
+    // 4. Resetear la palabra seleccionada SOLO después de haberla colocado
     selectedWord = null;
 
-    // 4. Verificar si la práctica ha terminado
+    // 5. Verificar si la práctica ha terminado
     checkCompletion();
 }
 
 
-// 5. Control de Flujo y Reinicio
+// 6. Control de Flujo y Reinicio
 function checkCompletion() {
     let placedWords = 0;
 
@@ -150,7 +176,6 @@ function checkCompletion() {
             currentBlock++;
             showFeedback(true, '¡Bloque 1 Completado! Cargando nuevas palabras...');
             
-            // Pausa visual antes de limpiar y cargar el Bloque 2
             setTimeout(loadNextBlock, 2000); 
             
         } else {
@@ -163,7 +188,6 @@ function checkCompletion() {
 function loadNextBlock() {
     // 1. Limpiar todas las palabras de las cajas para el nuevo bloque
     dropZones.forEach(zone => {
-        // Mantiene solo el título <h3>
         zone.innerHTML = zone.querySelector('h3').outerHTML; 
     });
     
@@ -175,23 +199,23 @@ function loadNextBlock() {
 }
 
 function resetTotalPractice() {
-    // 1. Resetear variables de estado
+    // Reinicio total manual
     currentBlock = 1; 
     errorCount = 0;
     errorCountDisplay.textContent = '0';
     
-    // 2. Limpiar todas las palabras
+    // Limpiar HTML
     dropZones.forEach(zone => {
         zone.innerHTML = zone.querySelector('h3').outerHTML;
     });
     wordBank.innerHTML = '';
 
-    // 3. Resetear estilos del feedback
+    // Resetear feedback
     feedbackMessage.classList.remove('show', 'final-message');
     feedbackMessage.style.backgroundColor = '';
     feedbackMessage.textContent = '';
     
-    // 4. Iniciar desde el Bloque 1
+    // Iniciar desde el Bloque 1
     initializeApp();
 }
 
@@ -203,15 +227,13 @@ function returnToBank(element) {
     feedbackMessage.style.backgroundColor = '';
 }
 
-// 6. Inicialización de Elementos de Palabras
+// 7. Inicialización de Elementos de Palabras
 function initializeWordElements() {
     
     const blockWords = allWords.filter(word => word.block === currentBlock);
     
-    // Barajar
     blockWords.sort(() => Math.random() - 0.5);
     
-    // Crear los elementos HTML
     blockWords.forEach(function(word) {
         const wordDiv = document.createElement('div');
         wordDiv.textContent = word.text; 
@@ -225,7 +247,7 @@ function initializeWordElements() {
 }
 
 
-// 7. Inicialización de la Aplicación (Setup Inicial)
+// 8. Inicialización de la Aplicación (Setup Inicial)
 function initializeApp() {
     // Cargar las palabras del primer bloque (Bloque 1)
     initializeWordElements();
@@ -255,7 +277,7 @@ function initializeApp() {
             });
         });
         
-        // Tocar el Mensaje Final para Reiniciar (Nuevo Listener)
+        // Tocar el Mensaje Final para Reiniciar (Listener para el reinicio manual)
         feedbackMessage.addEventListener('click', function() {
             if (feedbackMessage.classList.contains('final-message')) {
                 resetTotalPractice();
