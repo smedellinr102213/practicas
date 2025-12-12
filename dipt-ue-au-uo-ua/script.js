@@ -95,15 +95,15 @@ function showFinalMessage() {
     feedbackMessage.textContent = `¡Práctica Terminada! Errores totales (Bloque 1 y 2): ${errorCount}. Llévalo a tu maestro para revisión. (Toca aquí para Reiniciar)`;
     feedbackMessage.classList.add('show', 'final-message');
     
+    // Pausar la interacción
     wordBank.style.pointerEvents = 'none';
-    dropZones.forEach(zone => zone.style.pointerEvents = 'none'); // Deshabilitar zonas también
+    dropZones.forEach(zone => zone.style.pointerEvents = 'none'); 
 }
 
 
 // 4. Lógica de Tocar para Seleccionar (Banco de Palabras)
-function handleWordSelection(event) {
-    const targetWord = event.target;
-    
+function handleWordSelection(targetWord) {
+    // Si la palabra ya fue clasificada correctamente, no hacemos nada.
     if (targetWord.classList.contains('correct')) {
         return; 
     }
@@ -122,16 +122,7 @@ function handleWordSelection(event) {
 
 
 // 5. Lógica de Tocar para Colocar (Zonas de Soltar)
-function handleZonePlacement(event) {
-    // Si el clic fue en una palabra ya colocada, salimos para que lo maneje el reubicador.
-    if (event.target.classList.contains('selectable-word')) {
-        return; 
-    }
-
-    // Si el clic fue en el título H3 o un elemento interno (propagación), usamos currentTarget (la zona).
-    const targetZone = event.currentTarget; 
-
-    // CRÍTICO: Comprobación de que una palabra esté activa.
+function handleZonePlacement(targetZone) {
     if (!selectedWord) {
         showFeedback(false, '¡Selecciona una palabra primero!');
         return;
@@ -171,12 +162,13 @@ function checkCompletion() {
 
     if (placedWords === wordsPerBlock) {
         if (currentBlock < totalBlocks) {
+            // Transición de bloque
             currentBlock++;
             showFeedback(true, '¡Bloque 1 Completado! Cargando nuevas palabras...');
             setTimeout(loadNextBlock, 2000); 
             
         } else {
-            // FIN DE LA PRÁCTICA (Bloque 2)
+            // Fin de la práctica
             showFinalMessage();
         }
     }
@@ -185,6 +177,7 @@ function checkCompletion() {
 function loadNextBlock() {
     // 1. Limpiar HTML de las cajas
     dropZones.forEach(zone => {
+        // Mantiene solo el título <h3>
         zone.innerHTML = zone.querySelector('h3').outerHTML; 
     });
     
@@ -246,47 +239,51 @@ function initializeWordElements() {
 }
 
 
-// 8. Inicialización de la Aplicación (Setup Inicial)
+// 8. Inicialización de la Aplicación (Setup Inicial con Delegación de Eventos)
 function initializeApp() {
     // Cargar las palabras del primer bloque (Bloque 1)
     initializeWordElements();
 
-    // Configurar Eventos (Solo se configuran una vez)
-    if (!wordBank.hasAttribute('data-listeners-added')) {
-         
-        // Tocar para seleccionar (Banco)
-        wordBank.addEventListener('click', function(e) {
-            if (e.target.classList.contains('selectable-word')) {
-                handleWordSelection(e);
-            }
-        });
-
-        // Tocar para colocar (Zonas)
-        dropZones.forEach(function(zone) {
-            zone.addEventListener('click', handleZonePlacement);
-        });
-
-        // Tocar para reubicar (Palabra ya colocada)
-        dropZones.forEach(function(zone) {
-            zone.addEventListener('click', function(e) {
-                // Si el clic fue en una palabra y no hay ninguna otra seleccionada
-                if (e.target.classList.contains('selectable-word') && !selectedWord) {
-                    returnToBank(e.target);
-                    // Usamos el evento.target para asegurar que seleccionamos la que acabamos de devolver
-                    handleWordSelection(e); 
-                }
-            });
-        });
+    // Usamos event delegation en el cuerpo del documento para capturar todos los clics de manera robusta.
+    if (!document.body.hasAttribute('data-listeners-added')) {
         
-        // Tocar el Mensaje Final para Reiniciar (Listener para el reinicio manual)
-        feedbackMessage.addEventListener('click', function() {
-            if (feedbackMessage.classList.contains('final-message')) {
+        document.body.addEventListener('click', function(e) {
+            const target = e.target;
+            
+            // 1. Clic en el MENSAJE FINAL (Reinicio)
+            if (target === feedbackMessage && feedbackMessage.classList.contains('final-message')) {
                 resetTotalPractice();
+                return;
             }
+            
+            // 2. Clic en una palabra en el BANCO (Selección)
+            // Usamos .closest() para asegurar que seleccionamos el DIV de la palabra.
+            const wordInBank = target.closest('#word-bank .selectable-word');
+            if (wordInBank) {
+                handleWordSelection(wordInBank);
+                return;
+            } 
+            
+            // 3. Clic en una palabra en la ZONA (Reubicación)
+            const wordInZone = target.closest('.drop-zone .selectable-word');
+            if (wordInZone) {
+                if (!selectedWord) {
+                    returnToBank(wordInZone);
+                    handleWordSelection(wordInZone); 
+                }
+                return;
+            } 
+            
+            // 4. Clic en la ZONA DE SOLTAR (Colocación)
+            const dropZoneClicked = target.closest('.drop-zone');
+            if (dropZoneClicked) {
+                handleZonePlacement(dropZoneClicked);
+                return;
+            }
+
         });
 
-
-        wordBank.setAttribute('data-listeners-added', 'true');
+        document.body.setAttribute('data-listeners-added', 'true');
     }
 }
 
