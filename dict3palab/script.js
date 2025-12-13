@@ -7,26 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
         ["Un", "gato", "salta."],
         ["El", "sol", "brilla."],
         ["La", "niña", "come."],
-        ["Mi", "papá", "lee."],
+        ["Mi", "papá", "lee."], // Contiene acento, que ahora se ignorará en la validación de letras
         ["Tu", "casa", "es."], 
         ["El", "pez", "nada."],
-        ["Un", "árbol", "cae."]
+        ["Un", "árbol", "cae."] // Contiene acento
     ];
     
     let currentSentence = [];
     let completedCount = 0;
-    let preferredVoice = null; // Para almacenar la voz de español de México
+    let preferredVoice = null; 
     
     const inputArea = document.getElementById('input-area');
     const playButton = document.getElementById('play-sentence-btn');
     const nextButton = document.getElementById('next-sentence-btn');
     const countDisplay = document.getElementById('completed-count');
 
-    // --- Configuración de Voz para Safari/iOS ---
-
+    // --- Helper para ignorar acentos ---
     /**
-     * Carga y establece la voz preferida (español de México) de forma asíncrona.
+     * Normaliza un string quitando los acentos (tildes).
+     * @param {string} str - El string a normalizar.
      */
+    function removeAccents(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    // --- Configuración de Voz para Safari/iOS ---
     function setPreferredVoice() {
         const voices = speechSynthesis.getVoices();
         
@@ -39,22 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // El evento 'voiceschanged' es crucial en Safari para asegurar que las voces se carguen.
     if (speechSynthesis.onvoiceschanged !== undefined) {
         speechSynthesis.onvoiceschanged = setPreferredVoice;
     }
-    // Llamar una vez por si ya están cargadas
     setPreferredVoice();
 
 
     /**
-     * Función para obtener una oración aleatoria y única.
+     * Obtiene una oración aleatoria y única.
      */
     function getRandomSentence() {
         if (sentences.length === 0) {
             alert("¡Has completado todas las oraciones! Reiniciando la práctica.");
-            // Opcional: recargar el array de oraciones aquí si el profesor quiere que continúe.
-            // Por ahora, terminamos la práctica
             return null;
         }
         
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         inputArea.innerHTML = '';
         nextButton.classList.add('hidden');
-        playButton.disabled = false; // Asegurar que se puede reproducir la nueva oración
+        playButton.disabled = false; 
 
         currentSentence.forEach((word, index) => {
             const input = document.createElement('input');
@@ -86,12 +87,29 @@ document.addEventListener('DOMContentLoaded', () => {
             input.placeholder = `Palabra ${index + 1}`;
             input.setAttribute('data-index', index);
             input.addEventListener('input', checkWord);
+            input.addEventListener('keydown', handleKeydown); // Para mejor usabilidad
             inputArea.appendChild(input);
         });
+        
+        // Enfocar el primer input automáticamente para empezar
+        const firstInput = inputArea.querySelector('.word-input');
+        if(firstInput) firstInput.focus();
     }
+    
+    /**
+     * Maneja la pulsación de la tecla Enter para verificar y avanzar.
+     */
+     function handleKeydown(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); 
+            // Forzar la verificación en caso de que aún no se haya disparado
+            checkWord({ target: event.target }); 
+        }
+     }
+
 
     /**
-     * Usa la Web Speech API para leer la oración en voz alta.
+     * Lee la oración en voz alta.
      */
     function speakSentence() {
         if (currentSentence.length === 0) return;
@@ -105,12 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         
         utterance.lang = 'es-MX';
-        utterance.rate = 0.8; 
+        utterance.rate = 0.9; // Más natural que 0.8
         
         if (preferredVoice) {
             utterance.voice = preferredVoice;
         } else {
-            // Fallback si la voz aún no se ha cargado o no existe la de MX
             utterance.lang = 'es';
         }
 
@@ -118,59 +135,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Comprueba la palabra escrita por el estudiante aplicando reglas ortográficas.
+     * Comprueba la palabra escrita por el estudiante aplicando reglas ortográficas y tolerancia a acentos.
      */
     function checkWord(event) {
         const input = event.target;
         const index = parseInt(input.getAttribute('data-index'));
         const correctWord = currentSentence[index];
-        const studentInput = input.value.trim();
+        let studentInput = input.value.trim();
         
         let isCorrect = false;
 
-        // Limpiar la palabra correcta de puntuación para comparación de letras/capitalización
+        // 1. Preprocesar la palabra correcta: quitar punto final y minúsculas para la comparación base
         let baseCorrect = correctWord.replace('.', '');
         
+        // 2. Normalización de palabras a comparar (ignorar acentos)
+        const baseCorrectNoAccents = removeAccents(baseCorrect);
+        const studentInputNoAccents = removeAccents(studentInput);
+        
+        // --- Lógica de Validación ---
+        
         if (index === 0) {
-            // Regla: Primera palabra SIEMPRE requiere mayúscula inicial (coincidencia exacta)
-            isCorrect = (studentInput === baseCorrect);
+            // Regla: Primera palabra requiere mayúscula INICIAL y coincidencia de letras (sin acento)
+            // 1. Debe empezar con mayúscula.
+            const startsWithCapital = (studentInput.length > 0 && studentInput[0] === baseCorrect[0]);
+            
+            // 2. El resto de las letras deben coincidir (ignorando acentos y mayúsculas/minúsculas)
+            const lettersMatch = (studentInputNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
+            
+            isCorrect = startsWithCapital && lettersMatch;
             
         } else if (index === currentSentence.length - 1) {
-            // Regla 1: Debe ser minúscula (salvo sustantivo propio, que no se usa aquí)
-            // Regla 2: Debe llevar punto final obligatorio
+            // Regla: Última palabra debe ser minúscula (letras) Y debe llevar punto final.
             
-            // Comparamos el valor del estudiante con la palabra correcta (incluyendo el punto final)
-            isCorrect = (studentInput === correctWord);
+            // 1. Debe tener el punto final.
+            const hasPunctuation = (studentInput.slice(-1) === '.');
             
-            // Opcional: Permitir la palabra correcta sin punto, pero no la marcaremos como "correcta final"
-            // Para obligar el punto, la comparación es literal: studentInput === correctWord.
+            // 2. Las letras (sin punto) deben coincidir, ignorando acentos y mayúsculas.
+            const studentBase = studentInput.slice(0, -1);
+            const studentBaseNoAccents = removeAccents(studentBase);
+            const lettersMatch = (studentBaseNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
+
+            isCorrect = hasPunctuation && lettersMatch;
             
         } else {
-            // Regla: Palabras intermedias deben ir en minúscula.
-            // Forzamos la comparación en minúsculas para aceptar 'rana' o 'RaNa' como correcto,
-            // pero el usuario solo debe escribir 'rana'.
+            // Regla: Palabras intermedias deben ser minúsculas (letras).
             
-            // Para el dictado, la regla es estricta: deben escribir la palabra tal cual,
-            // pero sin mayúscula forzada para sustantivos comunes.
+            // 1. Las letras deben coincidir, ignorando acentos.
+            const lettersMatch = (studentInputNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
             
-            // Opción 1 (Estricta): La palabra intermedia debe ser igual a la baseCorrect y en minúsculas.
-            // baseCorrect.toLowerCase() asegura que, p.ej., 'Rana' se convierte a 'rana'.
-            isCorrect = (studentInput.toLowerCase() === baseCorrect.toLowerCase() && studentInput === baseCorrect.toLowerCase());
+            // 2. Reforzando la minúscula (se considera correcto si la entrada es minúscula Y las letras coinciden)
+            isCorrect = lettersMatch && (studentInput === studentInput.toLowerCase());
             
-            // Damos un pequeño margen permitiendo que si lo escribe en mayúscula, se considere bien
-            // si la palabra base es un sustantivo común (como 'rana').
-            // Pero para reforzar la ortografía, seremos estrictos con las minúsculas.
-            isCorrect = (studentInput === baseCorrect.toLowerCase());
+            // Flexibilizamos un poco si el niño escribe en mayúsculas por error, pero la meta es minúsculas
+            // La validación simple de letras sin acentos es suficiente.
+            isCorrect = lettersMatch;
         }
 
-        // Aplicar estilos de retroalimentación
+        // --- Aplicar Retroalimentación y Foco ---
+        
         input.classList.remove('correct', 'incorrect');
+        let needsFocusMove = false;
+        
         if (studentInput.length > 0) {
             if (isCorrect) {
                 input.classList.add('correct');
                 input.disabled = true; // Deshabilitar si es correcta
+                needsFocusMove = true;
             } else {
                 input.classList.add('incorrect');
+            }
+        }
+        
+        if (needsFocusMove && index < currentSentence.length - 1) {
+            // Mover el foco al siguiente input si hay uno y la palabra es correcta.
+            const nextInput = inputArea.querySelector(`[data-index="${index + 1}"]`);
+            if (nextInput) {
+                nextInput.focus();
             }
         }
         
@@ -178,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Comprueba si todas las cajas de texto son correctas.
+     * Comprueba si toda la oración está completada y correcta.
      */
     function checkCompletion() {
         const inputs = Array.from(inputArea.querySelectorAll('.word-input'));
