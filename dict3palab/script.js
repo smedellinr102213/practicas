@@ -1,16 +1,37 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Array de oraciones sencillas (Artículo, Sustantivo, Verbo)
+    // Array de 30 oraciones sencillas (Artículo/Determinante + Sustantivo + Verbo/Complemento)
+    // NOTA: La lógica de validación ignora acentos/tildes, pero los mantiene en la oración para la voz.
     const sentences = [
-        ["La", "rana", "nada."],
-        ["El", "perro", "corre."],
-        ["Una", "flor", "crece."],
-        ["Un", "gato", "salta."],
-        ["El", "sol", "brilla."],
-        ["La", "niña", "come."],
-        ["Mi", "papá", "lee."], // Contiene acento, que ahora se ignorará en la validación de letras
-        ["Tu", "casa", "es."], 
+        ["El", "gato", "juega."],
+        ["La", "niña", "ríe."],
+        ["Un", "pájaro", "vuela."],
+        ["Mi", "perro", "salta."],
+        ["Ese", "sol", "calienta."],
+        ["Una", "flor", "nace."],
+        ["Mi", "mamá", "come."],
         ["El", "pez", "nada."],
-        ["Un", "árbol", "cae."] // Contiene acento
+        ["La", "mesa", "es."],
+        ["Un", "día", "pasa."],
+        ["Esa", "bola", "rueda."],
+        ["El", "libro", "cae."],
+        ["Mi", "tío", "ayuda."],
+        ["La", "luna", "brilla."],
+        ["Un", "tren", "llega."],
+        ["El", "agua", "moja."],
+        ["La", "mano", "toca."],
+        ["Mi", "pie", "duele."],
+        ["Un", "árbol", "crece."],
+        ["La", "taza", "cae."],
+        ["El", "bebé", "duerme."],
+        ["Una", "carta", "dice."],
+        ["Mi", "dado", "gira."],
+        ["Ese", "cielo", "es."],
+        ["El", "pelo", "es."],
+        ["La", "casa", "tiene."],
+        ["Un", "dedo", "apunta."],
+        ["Mi", "ropa", "está."],
+        ["El", "nido", "tiene."],
+        ["Una", "abeja", "pica."],
     ];
     
     let currentSentence = [];
@@ -28,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} str - El string a normalizar.
      */
     function removeAccents(str) {
+        // Usa la forma NFD (Normalization Form D) y quita los caracteres diacríticos (acentos)
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
 
@@ -56,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getRandomSentence() {
         if (sentences.length === 0) {
             alert("¡Has completado todas las oraciones! Reiniciando la práctica.");
+            // Si queremos que continúe después de agotar la lista, podemos recargar el array aquí.
             return null;
         }
         
@@ -87,11 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
             input.placeholder = `Palabra ${index + 1}`;
             input.setAttribute('data-index', index);
             input.addEventListener('input', checkWord);
-            input.addEventListener('keydown', handleKeydown); // Para mejor usabilidad
+            input.addEventListener('keydown', handleKeydown);
             inputArea.appendChild(input);
         });
         
-        // Enfocar el primer input automáticamente para empezar
+        // Enfocar el primer input automáticamente
         const firstInput = inputArea.querySelector('.word-input');
         if(firstInput) firstInput.focus();
     }
@@ -102,7 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
      function handleKeydown(event) {
         if (event.key === 'Enter') {
             event.preventDefault(); 
-            // Forzar la verificación en caso de que aún no se haya disparado
             checkWord({ target: event.target }); 
         }
      }
@@ -123,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         
         utterance.lang = 'es-MX';
-        utterance.rate = 0.9; // Más natural que 0.8
+        utterance.rate = 0.9; 
         
         if (preferredVoice) {
             utterance.voice = preferredVoice;
@@ -135,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Comprueba la palabra escrita por el estudiante aplicando reglas ortográficas y tolerancia a acentos.
+     * Comprueba la palabra escrita por el estudiante.
      */
     function checkWord(event) {
         const input = event.target;
@@ -145,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let isCorrect = false;
 
-        // 1. Preprocesar la palabra correcta: quitar punto final y minúsculas para la comparación base
+        // 1. Preprocesar la palabra correcta: quitar punto final
         let baseCorrect = correctWord.replace('.', '');
         
         // 2. Normalización de palabras a comparar (ignorar acentos)
@@ -155,22 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Lógica de Validación ---
         
         if (index === 0) {
-            // Regla: Primera palabra requiere mayúscula INICIAL y coincidencia de letras (sin acento)
-            // 1. Debe empezar con mayúscula.
+            // Palabra 1: Mayúscula INICIAL obligatoria, letras (sin acentos) deben coincidir.
             const startsWithCapital = (studentInput.length > 0 && studentInput[0] === baseCorrect[0]);
-            
-            // 2. El resto de las letras deben coincidir (ignorando acentos y mayúsculas/minúsculas)
             const lettersMatch = (studentInputNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
             
             isCorrect = startsWithCapital && lettersMatch;
             
         } else if (index === currentSentence.length - 1) {
-            // Regla: Última palabra debe ser minúscula (letras) Y debe llevar punto final.
+            // Palabra 3: Punto final obligatorio, letras (sin acentos) deben coincidir en minúscula.
             
-            // 1. Debe tener el punto final.
             const hasPunctuation = (studentInput.slice(-1) === '.');
             
-            // 2. Las letras (sin punto) deben coincidir, ignorando acentos y mayúsculas.
             const studentBase = studentInput.slice(0, -1);
             const studentBaseNoAccents = removeAccents(studentBase);
             const lettersMatch = (studentBaseNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
@@ -178,16 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
             isCorrect = hasPunctuation && lettersMatch;
             
         } else {
-            // Regla: Palabras intermedias deben ser minúsculas (letras).
-            
-            // 1. Las letras deben coincidir, ignorando acentos.
+            // Palabra 2: Letras (sin acentos) deben coincidir. Se permite cualquier capitalización para mayor flexibilidad.
             const lettersMatch = (studentInputNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
-            
-            // 2. Reforzando la minúscula (se considera correcto si la entrada es minúscula Y las letras coinciden)
-            isCorrect = lettersMatch && (studentInput === studentInput.toLowerCase());
-            
-            // Flexibilizamos un poco si el niño escribe en mayúsculas por error, pero la meta es minúsculas
-            // La validación simple de letras sin acentos es suficiente.
             isCorrect = lettersMatch;
         }
 
@@ -207,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (needsFocusMove && index < currentSentence.length - 1) {
-            // Mover el foco al siguiente input si hay uno y la palabra es correcta.
+            // Mover el foco al siguiente input si hay uno y la palabra es correcta (excepto la última caja).
             const nextInput = inputArea.querySelector(`[data-index="${index + 1}"]`);
             if (nextInput) {
                 nextInput.focus();
