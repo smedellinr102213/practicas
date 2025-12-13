@@ -1,36 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Array de 30 oraciones sencillas (Artículo/Determinante + Sustantivo + Verbo/Complemento)
+    // Array de 30 oraciones sencillas (se mantiene)
     const sentences = [
-        ["El", "gato", "juega."],
-        ["La", "niña", "ríe."],
-        ["Un", "pájaro", "vuela."],
-        ["Mi", "perro", "salta."],
-        ["Ese", "sol", "calienta."],
-        ["Una", "flor", "nace."],
-        ["Mi", "mamá", "come."],
-        ["El", "pez", "nada."],
-        ["La", "mesa", "es."],
-        ["Un", "día", "pasa."],
-        ["Esa", "bola", "rueda."],
-        ["El", "libro", "cae."],
-        ["Mi", "tío", "ayuda."],
-        ["La", "luna", "brilla."],
-        ["Un", "tren", "llega."],
-        ["El", "agua", "moja."],
-        ["La", "mano", "toca."],
-        ["Mi", "pie", "duele."],
-        ["Un", "árbol", "crece."],
-        ["La", "taza", "cae."],
-        ["El", "bebé", "duerme."],
-        ["Una", "carta", "dice."],
-        ["Mi", "dado", "gira."],
-        ["Ese", "cielo", "es."],
-        ["El", "pelo", "es."],
-        ["La", "casa", "tiene."],
-        ["Un", "dedo", "apunta."],
-        ["Mi", "ropa", "está."],
-        ["El", "nido", "tiene."],
-        ["Una", "abeja", "pica."],
+        ["El", "gato", "juega."], ["La", "niña", "ríe."], ["Un", "pájaro", "vuela."],
+        ["Mi", "perro", "salta."], ["Ese", "sol", "calienta."], ["Una", "flor", "nace."],
+        ["Mi", "mamá", "come."], ["El", "pez", "nada."], ["La", "mesa", "es."],
+        ["Un", "día", "pasa."], ["Esa", "bola", "rueda."], ["El", "libro", "cae."],
+        ["Mi", "tío", "ayuda."], ["La", "luna", "brilla."], ["Un", "tren", "llega."],
+        ["El", "agua", "moja."], ["La", "mano", "toca."], ["Mi", "pie", "duele."],
+        ["Un", "árbol", "crece."], ["La", "taza", "cae."], ["El", "bebé", "duerme."],
+        ["Una", "carta", "dice."], ["Mi", "dado", "gira."], ["Ese", "cielo", "es."],
+        ["El", "pelo", "es."], ["La", "casa", "tiene."], ["Un", "dedo", "apunta."],
+        ["Mi", "ropa", "está."], ["El", "nido", "tiene."], ["Una", "abeja", "pica."],
     ];
     
     let currentSentence = [];
@@ -42,54 +22,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextButton = document.getElementById('next-sentence-btn');
     const countDisplay = document.getElementById('completed-count');
 
-    // --- Helper para ignorar acentos ---
+    // --- Helper para ignorar acentos (se mantiene) ---
     function removeAccents(str) {
-        // Usa la forma NFD (Normalization Form D) y quita los caracteres diacríticos (acentos)
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
 
-    // --- Configuración de Voz (CRÍTICO para iOS/Safari) ---
-    /**
-     * Busca y establece la voz más adecuada (femenina/infantil en español de México).
-     */
+    // --- Configuración de Voz (OPTIMIZADA para Tono de Niña/Femenino en iOS) ---
     function setPreferredVoice() {
-        // Obtener la lista de voces
         const voices = speechSynthesis.getVoices();
         
-        // Nombres comunes de voces femeninas/infantiles que puede usar iOS (ejemplos)
+        // 1. Nombres comunes de voces que suenan claras, femeninas o infantiles en español (incluye voces de otros acentos).
         const targetVoiceNames = [
-            /sandra/i, /sofía/i, /ximena/i, /carmen/i, /teresa/i, /paulina/i, /mujer/i, /female/i
+            /sandra/i, /sofía/i, /ximena/i, /carmen/i, /teresa/i, /paulina/i, /niña/i, /mujer/i, /female/i
         ];
         
-        // 1. Filtrar voces solo en español
         const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
         
-        // 2. Buscar voz de México (es-MX) con nombre femenino/infantil
-        let mxFemaleVoice = spanishVoices.find(voice => voice.lang === 'es-MX' && targetVoiceNames.some(regex => regex.test(voice.name)));
-        
-        // 3. Fallback 1: Cualquier voz de México (es-MX)
-        if (!mxFemaleVoice) {
-            mxFemaleVoice = spanishVoices.find(voice => voice.lang === 'es-MX');
-        }
-        
-        // 4. Fallback 2: La primera voz con nombre femenino/infantil en español (es-ES, es-US, etc.)
-        if (!mxFemaleVoice) {
-            mxFemaleVoice = spanishVoices.find(voice => targetVoiceNames.some(regex => regex.test(voice.name)));
+        // 2. PRIMERA PRIORIDAD: Buscar cualquier voz en español con un nombre que sugiera tono femenino/infantil.
+        let clearVoice = spanishVoices.find(voice => targetVoiceNames.some(regex => regex.test(voice.name)));
+
+        // 3. SEGUNDA PRIORIDAD: Si no se encuentra un nombre específico, buscar la voz de México (es-MX).
+        if (!clearVoice) {
+            clearVoice = spanishVoices.find(voice => voice.lang === 'es-MX');
         }
 
-        // 5. Fallback 3: Cualquier voz en español (la primera disponible)
-        preferredVoice = mxFemaleVoice || spanishVoices[0] || null;
+        // 4. Fallback: Cualquier voz en español.
+        preferredVoice = clearVoice || spanishVoices[0] || null;
     }
     
     // CRÍTICO EN SAFARI: Asegurar que las voces se carguen antes de intentar usarlas
     if (speechSynthesis.onvoiceschanged !== undefined) {
         speechSynthesis.onvoiceschanged = setPreferredVoice;
     }
-    // Llamar inmediatamente por si ya están cargadas
     setPreferredVoice();
 
 
-    // --- Lógica de la Práctica ---
+    // --- Lógica de la Práctica (Se mantiene) ---
 
     function getRandomSentence() {
         if (sentences.length === 0) {
@@ -125,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             inputArea.appendChild(input);
         });
         
-        // Enfocar el primer input para usabilidad en iPad
         const firstInput = inputArea.querySelector('.word-input');
         if(firstInput) firstInput.focus();
     }
@@ -149,14 +116,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         
-        utterance.lang = 'es-MX'; 
-        utterance.rate = 0.9; // Velocidad ajustada para claridad y naturalidad
+        // Ajustes para voz más infantil y menos robótica
+        utterance.rate = 0.9;  // Velocidad (1.0 es normal)
+        utterance.pitch = 1.2; // Tono (1.0 es normal, 1.2 es más alto, más infantil)
         
         if (preferredVoice) {
+            // Si encontramos una voz específica (ej. "Sofía" o "Niña"), la usamos.
             utterance.voice = preferredVoice;
+            // Usamos el idioma de esa voz, ya sea es-MX, es-ES, etc.
+            utterance.lang = preferredVoice.lang; 
         } else {
-            // Fallback si no se encontró una voz específica, usar idioma genérico
-            utterance.lang = 'es'; 
+            // Si no encontramos una voz específica, volvemos a es-MX (que es la más probable en México/Latinoamérica)
+            utterance.lang = 'es-MX';
         }
 
         speechSynthesis.speak(utterance);
@@ -172,20 +143,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let baseCorrect = correctWord.replace('.', '');
         
-        // Normalización de acentos para comparación
         const baseCorrectNoAccents = removeAccents(baseCorrect);
         const studentInputNoAccents = removeAccents(studentInput);
         
-        // --- Lógica de Validación ---
+        // --- Lógica de Validación (se mantiene) ---
         
         if (index === 0) {
-            // Palabra 1: Mayúscula INICIAL obligatoria y letras coinciden (ignorando acentos)
             const startsWithCapital = (studentInput.length > 0 && studentInput[0] === baseCorrect[0]);
             const lettersMatch = (studentInputNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
             isCorrect = startsWithCapital && lettersMatch;
             
         } else if (index === currentSentence.length - 1) {
-            // Palabra 3: Punto final obligatorio y letras coinciden (ignorando acentos)
             const hasPunctuation = (studentInput.slice(-1) === '.');
             
             const studentBase = studentInput.slice(0, -1);
@@ -195,12 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
             isCorrect = hasPunctuation && lettersMatch;
             
         } else {
-            // Palabra 2: Letras deben coincidir (ignorando acentos y mayúsculas/minúsculas)
             const lettersMatch = (studentInputNoAccents.toLowerCase() === baseCorrectNoAccents.toLowerCase());
             isCorrect = lettersMatch;
         }
 
-        // --- Aplicar Retroalimentación y Foco ---
+        // --- Aplicar Retroalimentación y Foco (se mantiene) ---
         
         input.classList.remove('correct', 'incorrect');
         let needsFocusMove = false;
@@ -216,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (needsFocusMove && index < currentSentence.length - 1) {
-            // Mover el foco al siguiente input si la palabra es correcta y no es la última caja
             const nextInput = inputArea.querySelector(`[data-index="${index + 1}"]`);
             if (nextInput) {
                 nextInput.focus();
