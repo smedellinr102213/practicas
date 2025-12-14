@@ -13,7 +13,7 @@
             <h1>Reconocimiento de Sílabas 🗣️</h1>
             <div id="counter-group">
                 <div id="counter-box">
-                    Aciertos: <span id="completed-count">0</span>
+                    Aciertos: <span id="completed-count">0 de 0</span>
                 </div>
                 <div id="error-box">
                     Errores: <span id="error-count">0</span>
@@ -23,18 +23,15 @@
 
         <main>
             <div class="controls-area">
-                <button id="play-syllable-btn" aria-label="Escuchar Sílaba" disabled>
+                <button id="play-syllable-btn" aria-label="Escuchar Sílaba">
                     <i class="fas fa-volume-up"></i>
                 </button>
                 <p class="instruction" id="main-instruction">Pulsa la bocina para iniciar la práctica.</p>
             </div>
             
-            <div id="syllable-options" class="syllable-options">
-                </div>
+            <form id="syllable-options" class="syllable-options">
+                </form>
 
-            <div id="feedback-area">
-                </div>
-            
             <button id="next-syllable-btn" class="hidden">Siguiente Sílaba 🎉</button>
         </main>
     </div>
