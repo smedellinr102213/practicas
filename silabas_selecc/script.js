@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
     
+    // NOTA: Estas funciones ahora asumen que las cajas existen, por lo que solo se llaman después de la inicialización
     function enableSyllableBoxes() {
         document.querySelectorAll('.syllable-box').forEach(box => {
             box.classList.remove('disabled-start'); 
@@ -112,7 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Inicializa una nueva práctica de sílaba (con las cajas bloqueadas).
+     * Inicializa una nueva práctica de sílaba. 
+     * NOTA: Esta función AHORA GENERA LAS CAJAS.
      */
     function initializePractice() {
         const options = generateOptions();
@@ -120,11 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
         optionsArea.innerHTML = ''; 
         nextButton.classList.add('hidden');
         instructionText.textContent = "Pulsa la bocina para escuchar la sílaba.";
-        playButton.disabled = false;
-
+        
         options.forEach(syllable => {
             const box = document.createElement('div');
-            // INICIA BLOQUEADO por CSS para prevenir toque fantasma en iOS
+            // Las cajas se crean bloqueadas, se habilitarán al hablar
             box.className = 'syllable-box disabled-start'; 
             box.textContent = syllable.toUpperCase(); 
             box.setAttribute('data-syllable', syllable);
@@ -167,15 +168,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Listeners ---
     
     playButton.addEventListener('click', () => {
-        // Lógica de Primera Inicialización
+        // Lógica de Primera Inicialización (CRÍTICO)
         if (!isInitialized) {
+            // 1. Genera las 5 cajas de sílabas por primera vez
             initializePractice();
-            // Eliminamos el mensaje inicial
-            instructionText.textContent = "Pulsa la bocina para escuchar la sílaba."; 
             isInitialized = true;
         }
         
-        // Hablar la sílaba (ya sea la primera vez o una repetición)
+        // 2. Hablar la sílaba (ya sea la primera vez o una repetición)
         playButton.disabled = true;
         speakSyllable(currentCorrectSyllable);
     });
@@ -201,6 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (initialBlocker) {
             initialBlocker.style.display = 'none';
         }
-        // NOTA: initializePractice() YA NO se llama aquí. Solo se llama al hacer clic en la bocina.
+        // NOTA: La pantalla inicia con el botón de bocina visible y NINGUNA caja de sílaba
     }, 500); 
 });
