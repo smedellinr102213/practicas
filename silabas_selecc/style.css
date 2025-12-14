@@ -113,7 +113,7 @@ h1 {
     transform: translateY(-2px);
 }
 
-/* Bloqueo inicial y al hacer click (CRÍTICO para iOS) */
+/* Bloqueo inicial y al hacer click */
 .syllable-box.disabled-start {
     pointer-events: none; 
     opacity: 0.6; 
@@ -196,4 +196,16 @@ h1 {
 
 #close-modal-btn:hover {
     background-color: #c62828;
+}
+
+/* --- Capa de Bloqueo de Interacción (CRÍTICO) --- */
+#initial-blocker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000; 
+    background: transparent; 
+    pointer-events: auto; 
 }
