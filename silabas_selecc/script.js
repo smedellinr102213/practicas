@@ -87,17 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     /**
-     * Habilita las cajas eliminando la clase de bloqueo inicial.
+     * Habilita las cajas eliminando la clase de bloqueo inicial y añadiendo el listener.
      */
     function enableSyllableBoxes() {
         document.querySelectorAll('.syllable-box').forEach(box => {
-            box.classList.remove('disabled-start'); // Elimina el bloqueo de interacción
+            box.classList.remove('disabled-start'); // Elimina el bloqueo de CSS
             box.addEventListener('click', handleSelection); // Añade el listener
         });
     }
 
     /**
-     * Deshabilita la interacción (al inicio o al acertar/fallar).
+     * Deshabilita la interacción añadiendo la clase de bloqueo inicial y quitando el listener.
      */
     function disableSyllableBoxes() {
         document.querySelectorAll('.syllable-box').forEach(box => {
@@ -127,18 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
         optionsArea.innerHTML = ''; 
         nextButton.classList.add('hidden');
         instructionText.textContent = "Pulsa la bocina para escuchar la sílaba.";
-        playButton.disabled = false; // Asegurar que el botón de bocina esté activo
+        playButton.disabled = false;
 
         options.forEach(syllable => {
             const box = document.createElement('div');
-            box.className = 'syllable-box disabled-start'; // INICIA BLOQUEADO
+            // La clase disabled-start está en CSS para bloquear el pointer-events
+            box.className = 'syllable-box disabled-start'; 
             box.textContent = syllable.toUpperCase(); 
             box.setAttribute('data-syllable', syllable);
-            // El listener se añade SÓLO al presionar la bocina
             optionsArea.appendChild(box);
         });
         
-        // Asegurar el bloqueo inicial de las cajas
+        // Asegurar el bloqueo inicial de las cajas (quitando listeners)
         disableSyllableBoxes(); 
     }
     
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedSyllable === currentCorrectSyllable) {
             // ACIERTO
-            selectedBox.classList.remove('disabled-start'); // Quitar bloqueo para mostrar el verde
+            selectedBox.classList.remove('disabled-start');
             selectedBox.classList.add('correct');
             completedCount++;
             countDisplay.textContent = completedCount;
@@ -179,34 +179,33 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Event Listeners ---
     
-    // Al pulsar la bocina: Dispara la voz y HABILITA las opciones
     playButton.addEventListener('click', () => {
-        // Bloquear temporalmente el botón de bocina para evitar clics múltiples
         playButton.disabled = true;
         speakSyllable(currentCorrectSyllable);
     });
     
-    // Al pulsar el botón Siguiente
     nextButton.addEventListener('click', nextPractice);
     
-    // Al pulsar el botón 'Entendido' del pop-up de error
     closeModalButton.addEventListener('click', () => {
         errorModal.classList.add('hidden');
         
-        // 1. Quitar el color rojo y re-habilitar las cajas incorrectas
+        // 1. Quitar el color rojo
         document.querySelectorAll('.syllable-box').forEach(box => {
             if (!box.classList.contains('correct')) {
                  box.classList.remove('incorrect');
             }
         });
         
-        // 2. Re-habilitar interacción para que puedan volver a elegir
+        // 2. Re-habilitar interacción y volver a reproducir
         enableSyllableBoxes();
-        
-        // 3. Volver a reproducir la sílaba para ayudar al estudiante
         speakSyllable(currentCorrectSyllable);
     });
 
-    // Iniciar la primera práctica
-    initializePractice();
+    // <<<<<<<<<<<<<<<< CAMBIO CRÍTICO FINAL: RETRASO DE INICIALIZACIÓN >>>>>>>>>>>>>>>>>>
+    // Esperar 500ms (medio segundo) antes de inicializar la práctica. 
+    // Esto da tiempo al navegador de iOS para "digerir" el toque inicial de carga.
+    setTimeout(() => {
+        initializePractice();
+    }, 500); 
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 });
