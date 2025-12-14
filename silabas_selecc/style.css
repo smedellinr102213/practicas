@@ -100,7 +100,7 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 3em; /* Letra más grande para mejor lectura */
+    font-size: 3em; 
     font-weight: 900;
     cursor: pointer;
     transition: border-color 0.3s, background-color 0.3s, transform 0.1s;
@@ -113,9 +113,9 @@ h1 {
     transform: translateY(-2px);
 }
 
-/* Bloqueo inicial y al hacer click */
+/* Bloqueo inicial y al hacer click (CRÍTICO para iOS) */
 .syllable-box.disabled-start {
-    pointer-events: none; /* Bloquea el toque en iOS */
+    pointer-events: none; 
     opacity: 0.6; 
 }
 
@@ -163,7 +163,7 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    backdrop-filter: blur(2px); /* Efecto suave de desenfoque */
+    backdrop-filter: blur(2px); 
 }
 
 .modal-content {
