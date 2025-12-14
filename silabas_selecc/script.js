@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Muestra el modal con el mensaje y estilo apropiados.
      */
     function showModal(isCorrect) {
-        // DOBLE PROTECCIÓN: Si el juego no ha sido inicializado, no se abre ningún modal.
+        // Protección 1: Si el juego no ha sido inicializado, no se abre ningún modal.
         if (!isInitialized) return; 
 
         mainModal.classList.remove('hidden', 'modal-error', 'modal-success');
@@ -161,6 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function handleSelection(event) {
         
+        // PROTECCIÓN 2 (CRÍTICA): Ignorar cualquier clic si el juego aún no se inicializó completamente.
+        if (!isInitialized) return; 
+
         const selectedBox = event.target;
         const selectedSyllable = selectedBox.getAttribute('data-syllable');
         
@@ -241,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         initialBlocker.style.display = 'none';
     }
     
-    // 2. HABILITAR EL BOTÓN DE BOCINA (permitiendo la interacción por primera vez)
-    // Esto se hace explícitamente al final del DOMContentLoaded para garantizar que todo esté listo.
+    // 2. HABILITAR EL BOTÓN DE BOCINA 
     playButton.disabled = false;
 });
