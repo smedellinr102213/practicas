@@ -1,0 +1,182 @@
+:root {
+    --color-primary: #3498db;
+    --color-success: #2ecc71;
+    --color-error: #e74c3c;
+    --color-neutral: #ecf0f1;
+    --color-text: #2c3e50;
+    --color-background: #f4f7f9;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--color-background);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: var(--color-text);
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    max-width: 90%;
+    width: 600px;
+    text-align: center;
+}
+
+header {
+    margin-bottom: 30px;
+}
+
+h1 {
+    color: var(--color-primary);
+    font-size: 1.8em;
+    margin-bottom: 10px;
+}
+
+#counter-box {
+    background-color: var(--color-neutral);
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+/* --- Área de Controles (Bocina) --- */
+.controls-area {
+    margin-bottom: 25px;
+}
+
+#play-syllable-btn {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    font-size: 2.5em;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+#play-syllable-btn:hover {
+    background-color: #2980b9;
+}
+
+#play-syllable-btn:active {
+    transform: scale(0.95);
+}
+
+.instruction {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #7f8c8d;
+}
+
+/* --- Área de Opciones de Sílabas --- */
+.syllable-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.syllable-box {
+    width: 100px; /* Tamaño fijo para las cajas */
+    height: 100px;
+    background-color: var(--color-neutral);
+    border: 4px solid #ccc;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: border-color 0.3s, background-color 0.3s, transform 0.1s;
+    user-select: none; /* Evita la selección de texto en la caja */
+}
+
+.syllable-box:hover {
+    background-color: #e0e4e7;
+}
+
+.syllable-box.correct {
+    border-color: var(--color-success);
+    background-color: #e8f9ed;
+    pointer-events: none; /* Desactivar después de acertar */
+}
+
+.syllable-box.incorrect {
+    border-color: var(--color-error);
+    background-color: #fce8e8;
+}
+
+.syllable-box.disabled {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* --- Botón Siguiente --- */
+#next-syllable-btn {
+    background-color: var(--color-success);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background-color 0.2s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.hidden {
+    display: none;
+}
+
+/* --- Pop-up / Modal de Error --- */
+.modal {
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content p {
+    font-size: 1.4em;
+    color: var(--color-error);
+    margin-bottom: 20px;
+}
+
+#close-modal-btn {
+    background-color: var(--color-error);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+}
