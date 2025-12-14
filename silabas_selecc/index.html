@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selección de Sílabas - Primer Grado</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Reconocimiento de Sílabas 🗣️</h1>
+            <div id="counter-box">
+                Aciertos: <span id="completed-count">0</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="controls-area">
+                <button id="play-syllable-btn" aria-label="Escuchar Sílaba">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <p class="instruction">Pulsa la bocina para escuchar la sílaba.</p>
+            </div>
+            
+            <div id="syllable-options" class="syllable-options">
+                </div>
+
+            <div id="feedback-area">
+                </div>
+            
+            <button id="next-syllable-btn" class="hidden">Siguiente Sílaba 🎉</button>
+        </main>
+    </div>
+
+    <div id="error-modal" class="modal hidden">
+        <div class="modal-content">
+            <p>¡Incorrecto! Intenta de nuevo. 🤔</p>
+            <button id="close-modal-btn">Entendido</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
