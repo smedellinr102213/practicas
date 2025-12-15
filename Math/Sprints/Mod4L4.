@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Práctica de Suma: Haz un Diez</title>
+    <!-- Carga de Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos personalizados para la tipografía y los inputs */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .problem-input {
+            /* Estilo base del input */
+            width: 4rem;
+            text-align: center;
+            font-weight: 700;
+            border: 2px solid #cbd5e1; /* slate-300 */
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        .correct {
+            border-color: #10b981 !important; /* emerald-500 */
+            background-color: #ecfdf5; /* emerald-50 */
+        }
+        .incorrect {
+            border-color: #ef4444 !important; /* red-500 */
+            background-color: #fef2f2; /* red-50 */
+        }
+        /* Ajuste para acercar el input al texto en las ecuaciones (problemas con valor faltante) */
+        .problem-flex {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* Espaciado ajustado */
+        }
+        .problem-flex .problem-input {
+             width: 3rem; /* Hacerlos un poco más pequeños */
+             padding: 0.25rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- CONTENEDOR DE SCORE FLOTANTE (Fixed) -->
+    <div id="score-container" class="fixed top-0 left-0 right-0 z-40 p-3 bg-blue-600 text-white shadow-xl flex justify-center">
+        <div class="max-w-4xl w-full flex justify-between items-center font-bold px-4 md:px-0">
+            <!-- Total ajustado a 60 -->
+            <span>Progreso: <span id="progress-count">0</span>/60</span> 
+            <!-- CONTADOR DE ERRORES -->
+            <span>Errores: <span id="error-count">0</span></span>
+        </div>
+    </div>
+    
+    <!-- CONTENEDOR PRINCIPAL: Se agrega un margen superior (mt-16) para que no sea cubierto por el score fijo -->
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10 mt-16">
+        <header class="mb-8 border-b pb-4">
+            <h1 class="text-3xl font-extrabold text-blue-800">Práctica Interactiva de Suma (Nivel B)</h1>
+            <p class="text-lg text-gray-600 mt-1">*Haz un diez para sumar. Compatible con iPad/iOS.</p>
+        </header>
+
+        <div id="problems-container" class="grid grid-cols-1 gap-4">
+            <!-- Los problemas se generarán aquí mediante JavaScript -->
+            <p class="text-center text-gray-500">Cargando problemas...</p>
+        </div>
+        
+        <div id="feedback-message" class="fixed bottom-0 left-0 right-0 p-4 bg-gray-900 text-white text-center text-xl font-bold transition-transform duration-300 transform translate-y-full rounded-t-xl z-50">
+            ¡Inténtalo de nuevo!
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. CONFIGURACIÓN DE DATOS Y ESTADO ---
+        const PROBLEMS = [
+            // --- BLOQUE 1: PROBLEMAS 1-30 ---
+            // Problemas A + B + C = [ ]
+            { id: 1, text: "5 + 5 + 4 =", answer: 14, format: 'end' },
+            { id: 2, text: "5 + 5 + 6 =", answer: 16, format: 'end' },
+            { id: 3, text: "5 + 5 + 5 =", answer: 15, format: 'end' },
+            { id: 4, text: "9 + 1 + 1 =", answer: 11, format: 'end' },
+            { id: 5, text: "9 + 1 + 2 =", answer: 12, format: 'end' },
+            { id: 6, text: "9 + 1 + 5 =", answer: 15, format: 'end' },
+            { id: 7, text: "1 + 9 + 5 =", answer: 15, format: 'end' },
+            { id: 8, text: "1 + 9 + 6 =", answer: 16, format: 'end' },
+            { id: 9, text: "8 + 2 + 4 =", answer: 14, format: 'end' },
+            { id: 10, text: "8 + 2 + 7 =", answer: 17, format: 'end' },
+            { id: 11, text: "2 + 8 + 7 =", answer: 17, format: 'end' },
+            { id: 12, text: "7 + 3 + 7 =", answer: 17, format: 'end' },
+            { id: 13, text: "7 + 3 + 8 =", answer: 18, format: 'end' },
+            { id: 14, text: "7 + 3 + 9 =", answer: 19, format: 'end' },
+            { id: 15, text: "3 + 7 + 9 =", answer: 19, format: 'end' },
+            { id: 16, text: "6 + 4 + 2 =", answer: 12, format: 'end' },
+            { id: 17, text: "6 + 4 + 3 =", answer: 13, format: 'end' },
+            { id: 18, text: "4 + 6 + 3 =", answer: 13, format: 'end' },
+            { id: 19, text: "4 + 6 + 6 =", answer: 16, format: 'end' },
+            { id: 20, text: "4 + 7 + 6 =", answer: 17, format: 'end' },
+            { id: 21, text: "5 + 4 + 5 =", answer: 14, format: 'end' },
+            { id: 22, text: "8 + 5 + 5 =", answer: 18, format: 'end' },
+            { id: 23, text: "1 + 7 + 9 =", answer: 17, format: 'end' },
+            // Problemas A + B + [ ] = D o A = B + [ ] + C
+            { id: 24, text: "9 + 1 + [ ] = 11", answer: 1, format: 'middle' },
+            { id: 25, text: "8 + 2 + [ ] = 12", answer: 2, format: 'middle' },
+            { id: 26, text: "[ ] + 3 + 4 = 14", answer: 7, format: 'start' },
+            { id: 27, text: "3 + [ ] + 7 = 20", answer: 10, format: 'middle' },
+            { id: 28, text: "7 + 8 + [ ] = 17", answer: 2, format: 'middle' },
+            { id: 29, text: "16 = 3 + [ ] + 6", answer: 7, format: 'middle' },
+            { id: 30, text: "19 = 2 + [ ] + 7", answer: 10, format: 'middle' },
+
+            // --- BLOQUE 2: PROBLEMAS 31-60 (Nuevos) ---
+            // Problemas A + B + C = [ ]
+            { id: 31, text: "9 + 1 + 3 =", answer: 13, format: 'end' },
+            { id: 32, text: "9 + 1 + 5 =", answer: 15, format: 'end' },
+            { id: 33, text: "1 + 9 + 5 =", answer: 15, format: 'end' },
+            { id: 34, text: "1 + 9 + 1 =", answer: 11, format: 'end' },
+            { id: 35, text: "5 + 5 + 4 =", answer: 14, format: 'end' },
+            { id: 36, text: "5 + 5 + 6 =", answer: 16, format: 'end' },
+            { id: 37, text: "5 + 5 + 5 =", answer: 15, format: 'end' },
+            { id: 38, text: "8 + 2 + 1 =", answer: 11, format: 'end' },
+            { id: 39, text: "8 + 2 + 3 =", answer: 13, format: 'end' },
+            { id: 40, text: "8 + 2 + 7 =", answer: 17, format: 'end' },
+            { id: 41, text: "2 + 8 + 7 =", answer: 17, format: 'end' },
+            { id: 42, text: "7 + 3 + 3 =", answer: 13, format: 'end' },
+            { id: 43, text: "7 + 3 + 6 =", answer: 16, format: 'end' },
+            { id: 44, text: "7 + 3 + 7 =", answer: 17, format: 'end' },
+            { id: 45, text: "3 + 7 + 7 =", answer: 17, format: 'end' },
+            { id: 46, text: "6 + 4 + 5 =", answer: 15, format: 'end' },
+            { id: 47, text: "6 + 4 + 6 =", answer: 16, format: 'end' },
+            { id: 48, text: "4 + 6 + 6 =", answer: 16, format: 'end' },
+            { id: 49, text: "4 + 6 + 5 =", answer: 15, format: 'end' },
+            { id: 50, text: "4 + 5 + 6 =", answer: 15, format: 'end' },
+            { id: 51, text: "5 + 3 + 5 =", answer: 13, format: 'end' },
+            { id: 52, text: "6 + 5 + 5 =", answer: 16, format: 'end' },
+            { id: 53, text: "1 + 4 + 9 =", answer: 14, format: 'end' },
+            // Problemas A + B + [ ] = D o A = B + [ ] + C
+            { id: 54, text: "9 + 1 + [ ] = 14", answer: 4, format: 'middle' },
+            { id: 55, text: "8 + 2 + [ ] = 11", answer: 1, format: 'middle' },
+            { id: 56, text: "[ ] + 3 + 4 = 13", answer: 6, format: 'start' },
+            { id: 57, text: "2 + [ ] + 6 = 16", answer: 8, format: 'middle' },
+            { id: 58, text: "1 + 1 + [ ] = 11", answer: 9, format: 'middle' },
+            { id: 59, text: "19 = 5 + [ ] + 9", answer: 5, format: 'middle' },
+            { id: 60, text: "18 = 4 + [ ] + 6", answer: 8, format: 'middle' }
+        ];
+
+        let score = {
+            total: PROBLEMS.length,
+            errors: 0, // Contador de errores
+            progress: 0,
+            answered: new Set()
+        };
+        const container = document.getElementById('problems-container');
+        const errorCountEl = document.getElementById('error-count'); // Referencia al nuevo contador de errores
+        const progressCountEl = document.getElementById('progress-count');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+
+        // --- 2. CONFIGURACIÓN DE AUDIO (Web Audio API para compatibilidad) ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        /**
+         * Genera un sonido simple de onda sinoidal para el feedback.
+         * @param {number} frequency - Frecuencia del tono (Hz).
+         * @param {number} duration - Duración del tono (segundos).
+         * @param {string} type - Tipo de onda ('sine', 'square', 'sawtooth', 'triangle').
+         */
+        function playTone(frequency, duration, type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+            // Volumen
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            
+            // Efecto de atenuación
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        function playCorrectSound() {
+            // Sonido "bing" (tono más alto y limpio)
+            playTone(880, 0.15, 'sine'); // A5
+        }
+
+        function playIncorrectSound() {
+            // Sonido "uh uh" (tono más bajo y disonante)
+            playTone(220, 0.3, 'sawtooth'); // A3
+            playTone(180, 0.3, 'sawtooth');
+        }
+
+        // --- 3. LÓGICA DE VALIDACIÓN Y AVANCE ---
+
+        /**
+         * Actualiza el estado de la práctica y el score en la UI.
+         */
+        function updateScore(isCorrect, problemId) {
+            let wasAnswered = score.answered.has(problemId);
+
+            // Recalcular errores
+            if (!isCorrect) {
+                score.errors++; // Incrementa con cada intento incorrecto
+            } 
+            
+            // Recalcular progreso (solo se considera progreso si es la primera vez que se intenta)
+            if (!wasAnswered) {
+                score.answered.add(problemId);
+                score.progress = score.answered.size;
+            } 
+            
+            errorCountEl.textContent = score.errors; // Actualiza el contador de errores
+            progressCountEl.textContent = score.progress;
+
+            // Mostrar el mensaje de feedback
+            feedbackMessageEl.textContent = isCorrect ? '¡Correcto! 👍' : 'Incorrecto, sigue intentando. 🧠';
+            feedbackMessageEl.classList.remove('translate-y-full', 'bg-gray-900', 'bg-red-600', 'bg-green-600');
+            feedbackMessageEl.classList.add(isCorrect ? 'bg-green-600' : 'bg-red-600');
+            
+            // Pequeño delay para la animación de subida
+            setTimeout(() => {
+                feedbackMessageEl.classList.add('-translate-y-full'); 
+            }, 10);
+
+            // Ocultar el mensaje después de un tiempo
+            setTimeout(() => {
+                feedbackMessageEl.classList.remove('-translate-y-full');
+                feedbackMessageEl.classList.add('translate-y-full');
+            }, 1500);
+
+        }
+
+        /**
+         * Maneja la validación de la respuesta y el avance.
+         * @param {HTMLInputElement} inputEl - El elemento input.
+         * @param {number} correctAns - La respuesta correcta.
+         * @param {number} problemId - El ID del problema.
+         */
+        function handleValidation(inputEl, correctAns, problemId) {
+            const studentAnswer = parseInt(inputEl.value.trim(), 10);
+            
+            // Limpiar clases de estilo previas
+            inputEl.classList.remove('correct', 'incorrect');
+
+            if (isNaN(studentAnswer)) {
+                return; // No hacer nada si no hay número
+            }
+
+            const isCorrect = studentAnswer === correctAns;
+
+            if (isCorrect) {
+                inputEl.classList.add('correct');
+                inputEl.setAttribute('readonly', 'true'); // Bloquear input correcto
+                playCorrectSound();
+                
+            } else {
+                inputEl.classList.add('incorrect');
+                playIncorrectSound();
+                
+                // --- MEJORA: LIMPIAR Y RE-ENFOCAR para reintento inmediato ---
+                inputEl.value = ''; // Vaciar el input
+                setTimeout(() => {
+                    inputEl.focus(); // Re-enfocar para que el estudiante pueda escribir de inmediato
+                }, 100); 
+            }
+
+            updateScore(isCorrect, problemId);
+
+            // Mover el foco al siguiente input
+            const currentId = parseInt(inputEl.id.replace('input-', ''), 10);
+            const nextId = currentId + 1;
+            const nextInput = document.getElementById(`input-${nextId}`);
+
+            if (isCorrect && nextInput) {
+                // Mover solo si es correcto
+                setTimeout(() => nextInput.focus(), 100);
+            }
+        }
+
+        /**
+         * Inicializa la práctica, creando los elementos HTML.
+         */
+        function initPractice() {
+            container.innerHTML = ''; // Limpiar el mensaje de carga
+
+            PROBLEMS.forEach(problem => {
+                const problemEl = document.createElement('div');
+                problemEl.className = 'p-3 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-between text-lg';
+                problemEl.id = `problem-${problem.id}`;
+
+                // --- Creación del número de problema y el contenedor de la expresión ---
+                const numSpan = document.createElement('span');
+                numSpan.textContent = `${problem.id}.`;
+                numSpan.className = 'font-bold text-gray-500 mr-3 w-8 flex-shrink-0';
+                
+                const expressionContainer = document.createElement('div');
+                expressionContainer.className = 'problem-flex text-gray-800 flex-grow justify-start';
+                
+                // --- Creación del input ---
+                const inputEl = document.createElement('input');
+                inputEl.type = 'text';
+                inputEl.id = `input-${problem.id}`;
+                inputEl.placeholder = '?';
+                inputEl.className = 'problem-input rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500';
+                inputEl.inputMode = 'numeric'; // Optimizado para teclado numérico en móviles
+                inputEl.setAttribute('data-answer', problem.answer);
+
+                // --- Lógica de la Expresión con Input ---
+                const textParts = problem.text.split('[ ]');
+                
+                if (problem.format === 'end') {
+                    // Formato: A + B + C = [ ]
+                    expressionContainer.innerHTML = textParts[0]; // Texto completo (ej: "5 + 5 + 4 =")
+                    expressionContainer.appendChild(inputEl);
+                } else if (problem.format === 'middle' || problem.format === 'start') {
+                    // Formato: [ ] + B + C = D o A + [ ] + C = D
+                    
+                    // Manejar la parte izquierda del input
+                    const leftSpan = document.createElement('span');
+                    leftSpan.innerHTML = textParts[0];
+                    expressionContainer.appendChild(leftSpan);
+                    
+                    expressionContainer.appendChild(inputEl);
+                    
+                    // Manejar la parte derecha del input (si existe)
+                    if (textParts.length > 1 && textParts[1].trim() !== '') {
+                        const rightSpan = document.createElement('span');
+                        rightSpan.textContent = textParts[1].trim(); 
+                        expressionContainer.appendChild(rightSpan);
+                    }
+                }
+                
+                // Unir los elementos
+                problemEl.appendChild(numSpan);
+                problemEl.appendChild(expressionContainer);
+                container.appendChild(problemEl);
+
+
+                // --- Event Listener para la validación ---
+                inputEl.addEventListener('keydown', (e) => {
+                    // Detectar la tecla Enter (código 13 o 'Enter' para navegadores modernos)
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                        e.preventDefault(); // Evitar envío de formulario o comportamiento por defecto
+                        handleValidation(inputEl, problem.answer, problem.id);
+                        
+                        // En iOS, el Enter del teclado táctil puede ser un poco inconsistente con el blur, 
+                        // pero este evento es el más seguro para la respuesta inmediata.
+                    }
+                });
+
+                // Fallback/Seguridad: Validar también al perder el foco (blur) si el campo no está vacío.
+                inputEl.addEventListener('blur', () => {
+                    if (inputEl.value.trim() !== '' && !inputEl.readOnly) {
+                        // Solo validar al blur si no está vacío y no ha sido ya marcado como correcto
+                        handleValidation(inputEl, problem.answer, problem.id);
+                    }
+                });
+            });
+            
+            // Enfocar el primer input al cargar
+            document.getElementById('input-1')?.focus();
+        }
+
+        // Ejecutar la inicialización cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', initPractice);
+        
+    </script>
+</body>
+</html>
