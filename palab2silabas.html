@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lectura de Palabras y Sonidos: 4 Letras</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #673ab7;
+            --color-secondary: #ff4081;
+            --color-success: #4caf50;
+            --color-error: #f44336;
+            --color-neutral: #f3e5f5;
+            --color-text: #37474f;
+            --color-background: #fafafa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--color-background);
+            margin: 0;
+            display: flex;
+            justify-content: center; 
+            align-items: center;     
+            min-height: 100vh;
+            color: var(--color-text);
+            touch-action: manipulation;
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            max-width: 95%;
+            width: 600px;
+            text-align: center;
+            box-sizing: border-box;
+            border: 2px solid #eee;
+        }
+
+        header h1 { color: var(--color-primary); margin-bottom: 5px; font-size: 1.6em; }
+
+        #counter-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        #counter-box, #error-box, #timer-box {
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        #counter-box { background-color: #e8f5e9; color: #2e7d32; }
+        #error-box { background-color: #ffebee; color: #c62828; }
+        #timer-box { background-color: #e3f2fd; color: #1565c0; min-width: 90px; }
+
+        #play-word-btn {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 110px;
+            height: 110px;
+            font-size: 3.5em;
+            cursor: pointer;
+            box-shadow: 0 8px 15px rgba(103, 58, 183, 0.3);
+            transition: all 0.2s;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #play-word-btn:active { transform: scale(0.92); }
+        #play-word-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+        .instruction { margin: 15px 0; color: #546e7a; font-size: 1em; font-weight: 600; }
+
+        .word-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .word-options input[type="radio"] { display: none; }
+
+        .word-options label {
+            height: 75px;
+            background-color: #fff;
+            border: 3px solid #eceff1;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8em;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--color-text);
+            text-transform: lowercase;
+            letter-spacing: 1px;
+        }
+
+        .word-options label.disabled { pointer-events: none; opacity: 0.6; }
+
+        input:checked + label.correct { border-color: var(--color-success); background-color: #e8f5e9; color: #2e7d32; }
+        input:checked + label.incorrect { border-color: var(--color-error); background-color: #ffebee; color: #c62828; }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 80%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+
+        .modal-success p { color: var(--color-success); font-size: 1.8em; font-weight: bold; margin: 10px 0; }
+        .modal-error p { color: var(--color-error); font-size: 1.8em; font-weight: bold; margin: 10px 0; }
+
+        #modal-action-btn {
+            margin-top: 20px;
+            padding: 12px 35px;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .modal-success #modal-action-btn { background-color: var(--color-success); }
+        .modal-error #modal-action-btn { background-color: var(--color-error); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Lectura de 4 Letras 📖</h1>
+            <div id="counter-group">
+                <div id="counter-box">Aciertos: <span id="completed-count">0 de 0</span></div>
+                <div id="error-box">Errores: <span id="error-count">0</span></div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-bottom: 5px;">
+                <div id="timer-box"><i class="fas fa-clock"></i> <span id="timer-display">00:00</span></div>
+            </div>
+        </header>
+
+        <main>
+            <button id="play-word-btn"><i class="fas fa-volume-up"></i></button>
+            <p class="instruction" id="main-instruction">¡Escucha y busca la combinación!</p>
+            <form id="word-options-form" class="word-options"></form>
+        </main>
+    </div>
+
+    <div id="main-modal" class="modal hidden">
+        <div class="modal-content" id="modal-container">
+            <p id="modal-message"></p>
+            <button id="modal-action-btn">Continuar</button>
+        </div>
+    </div>
+
+    <script>
+        // Banco de datos expandido con combinaciones seguras (Reales y Pseudopalabras)
+        const allWords = [
+            // --- PALABRAS REALES COMUNES ---
+            "casa", "pato", "gato", "sapo", "rana", "luna", "solo", "mesa", "silla", "bola", 
+            "loma", "dedo", "lobo", "pino", "nena", "nene", "toma", "dame", "mano", "sopa", 
+            "ropa", "pala", "mala", "sala", "masa", "paso", "piso", "peso", "poso", "suma", 
+            "asma", "isla", "alta", "lepo", "cana", "zapa", "paro", "foto", "bota", "gota", 
+            "moto", "auto", "tele", "rosa", "rima", "rama", "remo", "rulo", "tiza", "taza", 
+            "pozo", "jugo", "mago", "lago", "pago", "pega", "nido", "nudo", "lima", "tapa",
+            "pelo", "mulo", "velo", "foca", "vaca", "copa", "mapa", "capa", "nube", "cine",
+            "jugo", "beso", "faro", "higo", "yate", "rayo", "loro", "oroa", "uvas", "bebe",
+            "nina", "nino", "pina", "pena", "cuna", "cana", "lana", "rana", "gana", "vana",
+            
+            // --- COMBINACIONES FONÉTICAS SEGURAS (ESTRUCTURA C-V-C-V) ---
+            "badi", "befo", "bika", "bome", "busa", "cade", "cefi", "cilo", "copu", "cube",
+            "dafo", "degi", "dika", "domu", "dupe", "faba", "feli", "fimo", "fure", "gabo",
+            "geta", "gilo", "gume", "hadi", "helo", "hiba", "hoda", "hule", "jale", "jepi",
+            "jilo", "jora", "juma", "kabi", "kefa", "kilo", "kome", "kuna", "labi", "lefe",
+            "lilo", "lome", "lusa", "mabi", "mefe", "mika", "mope", "musa", "nabi", "nefe",
+            "nilo", "nope", "nusa", "pabi", "pefe", "pika", "pome", "pusa", "rabi", "refe",
+            "rika", "rome", "rusa", "sabi", "sefe", "sika", "some", "susa", "tabi", "tefe",
+            "tika", "tome", "tusa", "vabi", "vefe", "vika", "vome", "vusa", "yabi", "yefe",
+            "yika", "yome", "yusa", "zabi", "zefe", "zika", "zome", "zusa",
+
+            // --- COMBINACIONES FONÉTICAS SEGURAS (ESTRUCTURA V-C-V-C) ---
+            "upal", "arto", "elpa", "olmi", "ista", "unla", "almi", "erpa", "ilto", "olca",
+            "urba", "ampe", "esto", "info", "unte", "algo", "ante", "asno", "alto", "arco",
+            "echo", "erre", "esta", "itmo", "oblo", "orca", "urna", "usgo", "alma", "alva",
+
+            // --- MÁS PSEUDOPALABRAS DIVERSAS ---
+            "ulta", "pari", "lopa", "fadi", "gulo", "jopa", "lude", "nopa", "rami", "sulo",
+            "tepo", "vuna", "xali", "yode", "zapi", "bafi", "ceto", "doli", "fane", "gisu",
+            "hira", "julo", "keta", "mufa", "nepi", "pira", "sato", "tulo", "voma", "yapa",
+            "zulo", "nite", "vade", "soma", "lupi", "meta", "pika", "kepo", "duno", "fose",
+            "giba", "hame", "jule", "karo", "limu", "mora", "nilo", "pemo", "resa", "tifa",
+            "vobe", "yuko", "zale", "befi", "cida", "dufo", "foge", "guha", "hime", "joza"
+        ];
+
+        let currentCorrectWord = '';
+        let completedCount = 0, errorCount = 0, totalAttempts = 0;
+        let preferredVoice = null;
+        let isInitialized = false;
+        let timerInterval, secondsElapsed = 0, timerStarted = false;
+
+        const optionsArea = document.getElementById('word-options-form');
+        const playButton = document.getElementById('play-word-btn');
+        const countDisplay = document.getElementById('completed-count');
+        const errorCountDisplay = document.getElementById('error-count');
+        const timerDisplay = document.getElementById('timer-display');
+        const mainModal = document.getElementById('main-modal');
+        const modalContainer = document.getElementById('modal-container');
+        const modalMessage = document.getElementById('modal-message');
+        const modalActionButton = document.getElementById('modal-action-btn');
+
+        function startTimer() {
+            if (timerStarted) return;
+            timerStarted = true;
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+                const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function setPreferredVoice() {
+            const voices = speechSynthesis.getVoices();
+            let clearVoice = voices.find(v => v.lang === 'es-MX' && /Paulin|Ximen|Sofi|Susa/i.test(v.name));
+            if (!clearVoice) clearVoice = voices.find(v => v.lang === 'es-MX');
+            if (!clearVoice) clearVoice = voices.find(v => v.lang.startsWith('es'));
+            preferredVoice = clearVoice || null;
+        }
+
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = setPreferredVoice;
+        }
+        setPreferredVoice();
+
+        function speakWord(word) {
+            if (!word) return;
+            if (speechSynthesis.speaking) speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(word.toLowerCase());
+            utterance.lang = 'es-MX';
+            utterance.rate = 0.65; 
+            utterance.pitch = 1.1; 
+            
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            utterance.onstart = () => enableOptions();
+            utterance.onend = () => playButton.disabled = false;
+            
+            speechSynthesis.speak(utterance);
+        }
+
+        function generateNewPractice() {
+            // Seleccionamos una palabra al azar de la lista filtrada
+            const shuffled = [...allWords].sort(() => 0.5 - Math.random());
+            currentCorrectWord = shuffled[0];
+            
+            // Elegimos 4 opciones únicas
+            const options = shuffled.slice(0, 4).sort(() => 0.5 - Math.random());
+            
+            optionsArea.innerHTML = '';
+            options.forEach((word, i) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio'; radio.name = 'word'; radio.id = 'w' + i; radio.value = word;
+                const label = document.createElement('label');
+                label.htmlFor = 'w' + i; label.textContent = word;
+                label.classList.add('disabled');
+                optionsArea.appendChild(radio);
+                optionsArea.appendChild(label);
+            });
+        }
+
+        function handleSelection(e) {
+            if (!isInitialized) return;
+            const selected = e.target.value;
+            const label = document.querySelector(`label[for="${e.target.id}"]`);
+            disableOptions();
+            totalAttempts++;
+            
+            if (selected === currentCorrectWord) {
+                label.classList.add('correct');
+                completedCount++;
+                showModal(true);
+            } else {
+                label.classList.add('incorrect');
+                errorCount++;
+                const correctRadio = document.querySelector(`input[value="${currentCorrectWord}"]`);
+                document.querySelector(`label[for="${correctRadio.id}"]`).classList.add('correct');
+                showModal(false);
+            }
+            countDisplay.textContent = `${completedCount} de ${totalAttempts}`;
+            errorCountDisplay.textContent = errorCount;
+        }
+
+        function showModal(isCorrect) {
+            mainModal.classList.remove('hidden');
+            modalContainer.className = 'modal-content ' + (isCorrect ? 'modal-success' : 'modal-error');
+            modalMessage.textContent = isCorrect ? "¡Lo lograste! 🌟" : "¡Sigue escuchando! 👂";
+            modalActionButton.textContent = isCorrect ? "Siguiente" : "Reintentar";
+        }
+
+        function enableOptions() { 
+            document.querySelectorAll('.word-options label').forEach(l => l.classList.remove('disabled')); 
+            optionsArea.addEventListener('change', handleSelection); 
+        }
+        
+        function disableOptions() { 
+            document.querySelectorAll('.word-options label').forEach(l => l.classList.add('disabled')); 
+            optionsArea.removeEventListener('change', handleSelection); 
+        }
+
+        playButton.addEventListener('click', () => {
+            if (!isInitialized) { 
+                isInitialized = true; 
+                generateNewPractice(); 
+                startTimer(); 
+            }
+            playButton.disabled = true;
+            speakWord(currentCorrectWord);
+        });
+
+        modalActionButton.addEventListener('click', () => {
+            mainModal.classList.add('hidden');
+            if (modalContainer.classList.contains('modal-success')) {
+                generateNewPractice();
+                setTimeout(() => { 
+                    playButton.disabled = true; 
+                    speakWord(currentCorrectWord); 
+                }, 300);
+            } else {
+                optionsArea.reset();
+                document.querySelectorAll('.word-options label').forEach(l => l.classList.remove('incorrect', 'correct'));
+                enableOptions();
+            }
+        });
+
+        window.onload = () => { 
+            countDisplay.textContent = `0 de 0`; 
+        };
+    </script>
+</body>
+</html>
