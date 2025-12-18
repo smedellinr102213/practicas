@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reconocimiento de Sílabas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #5c6bc0;
+            --color-secondary: #42a5f5;
+            --color-success: #66bb6a;
+            --color-error: #ef5350;
+            --color-neutral: #e8eaf6;
+            --color-text: #263238;
+            --color-background: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--color-background);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--color-text);
+            touch-action: manipulation;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            max-width: 95%;
+            width: 650px;
+            text-align: center;
+        }
+
+        header h1 { color: var(--color-primary); margin-bottom: 10px; }
+
+        #counter-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        #counter-box, #error-box {
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        #counter-box { background-color: var(--color-neutral); }
+        #error-box { background-color: #ffccbc; }
+
+        #play-syllable-btn {
+            background-color: var(--color-secondary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            font-size: 3.5em;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+        }
+
+        #play-syllable-btn:active { transform: scale(0.95); }
+        #play-syllable-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .instruction { margin: 20px 0; color: #78909c; font-size: 1.1em; }
+
+        .syllable-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .syllable-options input[type="radio"] { display: none; }
+
+        .syllable-options label {
+            width: 100px;
+            height: 100px;
+            background-color: #f7f7f7;
+            border: 4px solid #cfd8dc;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .syllable-options label.disabled { pointer-events: none; opacity: 0.5; }
+
+        input:checked + label.correct { border-color: var(--color-success); background-color: #e8f5e9; }
+        input:checked + label.incorrect { border-color: var(--color-error); background-color: #ffebee; }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .modal-success p { color: var(--color-success); font-size: 1.8em; font-weight: bold; }
+        .modal-error p { color: var(--color-error); font-size: 1.8em; font-weight: bold; }
+
+        #modal-action-btn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-success #modal-action-btn { background-color: var(--color-success); }
+        .modal-error #modal-action-btn { background-color: var(--color-error); }
+
+        .hidden { display: none; }
+        #initial-blocker { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 3000; background: transparent; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Reconocimiento de Sílabas 🗣️</h1>
+            <div id="counter-group">
+                <div id="counter-box">Aciertos: <span id="completed-count">0 de 0</span></div>
+                <div id="error-box">Errores: <span id="error-count">0</span></div>
+            </div>
+        </header>
+
+        <main>
+            <button id="play-syllable-btn"><i class="fas fa-volume-up"></i></button>
+            <p class="instruction" id="main-instruction">Pulsa la bocina para iniciar.</p>
+            <form id="syllable-options" class="syllable-options"></form>
+        </main>
+    </div>
+
+    <div id="main-modal" class="modal hidden">
+        <div class="modal-content" id="modal-container">
+            <p id="modal-message"></p>
+            <button id="modal-action-btn">Entendido</button>
+        </div>
+    </div>
+
+    <div id="initial-blocker" class="hidden"></div>
+
+    <script>
+        const allSyllables = [
+            "ma", "me", "mi", "mo", "mu", "pa", "pe", "pi", "po", "pu", 
+            "sa", "se", "si", "so", "su", "la", "le", "li", "lo", "lu", 
+            "da", "de", "di", "do", "du", "ra", "re", "ri", "ro", "ru", 
+            "na", "ne", "ni", "no", "nu", "ta", "te", "ti", "to", "tu",
+            "ca", "co", "cu", "que", "qui", "ga", "go", "gu", "va", "ve", "vi", "vo", "vu"
+        ];
+
+        let currentCorrectSyllable = '';
+        let completedCount = 0;
+        let errorCount = 0;
+        let totalAttempts = 0;
+        let preferredVoice = null;
+        let isInitialized = false;
+        let startTime = Date.now();
+
+        const optionsArea = document.getElementById('syllable-options');
+        const playButton = document.getElementById('play-syllable-btn');
+        const countDisplay = document.getElementById('completed-count');
+        const errorCountDisplay = document.getElementById('error-count');
+        const mainModal = document.getElementById('main-modal');
+        const modalContainer = document.getElementById('modal-container');
+        const modalMessage = document.getElementById('modal-message');
+        const modalActionButton = document.getElementById('modal-action-btn');
+
+        // --- Configuración de Voz (CRÍTICO para iOS/Safari) ---
+        function setPreferredVoice() {
+            const voices = speechSynthesis.getVoices();
+            const targetVoiceNames = [/sandra/i, /sofía/i, /ximena/i, /carmen/i, /teresa/i, /paulina/i, /niña/i, /mujer/i, /female/i];
+            const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
+            let clearVoice = spanishVoices.find(voice => targetVoiceNames.some(regex => regex.test(voice.name)));
+            if (!clearVoice) clearVoice = spanishVoices.find(voice => voice.lang === 'es-MX');
+            preferredVoice = clearVoice || spanishVoices[0] || null;
+        }
+
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = setPreferredVoice;
+        }
+        setPreferredVoice();
+
+        function speakSyllable(syllable) {
+            if (!syllable) return;
+            if (speechSynthesis.speaking) speechSynthesis.cancel();
+
+            // REPARACIÓN DE PRONUNCIACIÓN:
+            // Añadimos un espacio entre letras o un punto para que no lo lea como abreviatura (Na -> N a)
+            const phoneme = syllable.split('').join(' '); 
+            const utterance = new SpeechSynthesisUtterance(phoneme);
+            
+            utterance.rate = 0.8; // Un poco más lento para que se entienda la unión
+            utterance.pitch = 1.2; 
+            
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+                utterance.lang = preferredVoice.lang;
+            } else {
+                utterance.lang = 'es-MX';
+            }
+
+            utterance.onstart = () => enableOptions();
+            utterance.onend = () => playButton.disabled = false;
+            speechSynthesis.speak(utterance);
+        }
+
+        function generateNewPractice() {
+            const shuffled = [...allSyllables].sort(() => 0.5 - Math.random());
+            currentCorrectSyllable = shuffled[0];
+            const options = shuffled.slice(0, 5).sort(() => 0.5 - Math.random());
+
+            optionsArea.innerHTML = '';
+            options.forEach((syl, i) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio'; radio.name = 'syl'; radio.id = 's' + i; radio.value = syl;
+                const label = document.createElement('label');
+                label.htmlFor = 's' + i; label.textContent = syl.toUpperCase();
+                label.classList.add('disabled');
+                optionsArea.appendChild(radio);
+                optionsArea.appendChild(label);
+            });
+        }
+
+        function handleSelection(e) {
+            if (!isInitialized || (Date.now() - startTime < 1000)) return;
+
+            const selected = e.target.value;
+            const label = document.querySelector(`label[for="${e.target.id}"]`);
+            disableOptions();
+            totalAttempts++;
+
+            if (selected === currentCorrectSyllable) {
+                label.classList.add('correct');
+                completedCount++;
+                showModal(true);
+            } else {
+                label.classList.add('incorrect');
+                errorCount++;
+                // Mostrar la correcta
+                const correctRadio = document.querySelector(`input[value="${currentCorrectSyllable}"]`);
+                document.querySelector(`label[for="${correctRadio.id}"]`).classList.add('correct');
+                showModal(false);
+            }
+            countDisplay.textContent = `${completedCount} de ${totalAttempts}`;
+            errorCountDisplay.textContent = errorCount;
+        }
+
+        function showModal(isCorrect) {
+            mainModal.classList.remove('hidden');
+            modalContainer.className = 'modal-content ' + (isCorrect ? 'modal-success' : 'modal-error');
+            modalMessage.textContent = isCorrect ? "¡Excelente! 🎉" : "¡Inténtalo de nuevo! 🤔";
+            modalActionButton.textContent = isCorrect ? "Siguiente" : "Entendido";
+        }
+
+        function enableOptions() {
+            document.querySelectorAll('label').forEach(l => l.classList.remove('disabled'));
+            optionsArea.addEventListener('change', handleSelection);
+        }
+
+        function disableOptions() {
+            document.querySelectorAll('label').forEach(l => l.classList.add('disabled'));
+            optionsArea.removeEventListener('change', handleSelection);
+        }
+
+        playButton.addEventListener('click', () => {
+            if (!isInitialized) {
+                isInitialized = true;
+                generateNewPractice();
+            }
+            playButton.disabled = true;
+            speakSyllable(currentCorrectSyllable);
+        });
+
+        modalActionButton.addEventListener('click', () => {
+            mainModal.classList.add('hidden');
+            if (modalContainer.classList.contains('modal-success')) {
+                generateNewPractice();
+                setTimeout(() => {
+                    playButton.disabled = true;
+                    speakSyllable(currentCorrectSyllable);
+                }, 300);
+            } else {
+                optionsArea.reset();
+                document.querySelectorAll('label').forEach(l => l.classList.remove('incorrect', 'correct'));
+                enableOptions();
+            }
+        });
+
+        window.onload = () => {
+            countDisplay.textContent = `0 de 0`;
+            startTime = Date.now();
+        };
+    </script>
+</body>
+</html>
