@@ -16,13 +16,14 @@
             --color-background: #f0f2f5;
         }
 
+        /* Centrado absoluto en la pantalla */
         body {
             font-family: 'Arial', sans-serif;
             background-color: var(--color-background);
             margin: 0;
             display: flex;
-            justify(content): center;
-            align-items: center;
+            justify-content: center; /* Centrado horizontal */
+            align-items: center;     /* Centrado vertical */
             min-height: 100vh;
             color: var(--color-text);
             touch-action: manipulation;
@@ -36,6 +37,7 @@
             max-width: 95%;
             width: 650px;
             text-align: center;
+            box-sizing: border-box;
         }
 
         header h1 { color: var(--color-primary); margin-bottom: 10px; font-size: 1.8em; }
@@ -44,10 +46,10 @@
             display: flex;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
-        #counter-box, #error-box {
+        #counter-box, #error-box, #timer-box {
             padding: 10px 15px;
             border-radius: 12px;
             font-weight: bold;
@@ -56,6 +58,7 @@
 
         #counter-box { background-color: var(--color-neutral); }
         #error-box { background-color: #ffccbc; }
+        #timer-box { background-color: #d1ecf1; color: #0c5460; min-width: 100px; }
 
         #play-syllable-btn {
             background-color: var(--color-secondary);
@@ -68,12 +71,13 @@
             cursor: pointer;
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
             transition: transform 0.1s;
+            margin-top: 10px;
         }
 
         #play-syllable-btn:active { transform: scale(0.95); }
         #play-syllable-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .instruction { margin: 20px 0; color: #78909c; font-size: 1.1em; font-weight: bold; }
+        .instruction { margin: 15px 0; color: #78909c; font-size: 1.1em; font-weight: bold; }
 
         .syllable-options {
             display: flex;
@@ -153,6 +157,9 @@
                 <div id="counter-box">Aciertos: <span id="completed-count">0 de 0</span></div>
                 <div id="error-box">Errores: <span id="error-count">0</span></div>
             </div>
+            <div style="display: flex; justify-content: center;">
+                <div id="timer-box"><i class="fas fa-clock"></i> Tiempo: <span id="timer-display">00:00</span></div>
+            </div>
         </header>
 
         <main>
@@ -188,15 +195,32 @@
         let preferredVoice = null;
         let isInitialized = false;
         let startTime = Date.now();
+        
+        // Variables del Cronómetro
+        let timerInterval;
+        let secondsElapsed = 0;
+        let timerStarted = false;
 
         const optionsArea = document.getElementById('syllable-options');
         const playButton = document.getElementById('play-syllable-btn');
         const countDisplay = document.getElementById('completed-count');
         const errorCountDisplay = document.getElementById('error-count');
+        const timerDisplay = document.getElementById('timer-display');
         const mainModal = document.getElementById('main-modal');
         const modalContainer = document.getElementById('modal-container');
         const modalMessage = document.getElementById('modal-message');
         const modalActionButton = document.getElementById('modal-action-btn');
+
+        function startTimer() {
+            if (timerStarted) return;
+            timerStarted = true;
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+                const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
 
         function setPreferredVoice() {
             const voices = speechSynthesis.getVoices();
@@ -216,15 +240,11 @@
             if (!syllable) return;
             if (speechSynthesis.speaking) speechSynthesis.cancel();
 
-            // ESTRATEGIA PARA IPAD:
-            // 1. Usamos minúsculas.
-            // 2. Colocamos un punto al final. El punto indica al motor de voz que es una palabra terminada, no una sigla.
-            // 3. Añadimos un pequeño prefijo silencioso o espacio para estabilizar el motor.
+            // Lógica para iPad: punto al final para evitar deletreo
             const textToSpeak = syllable.toLowerCase() + "."; 
-            
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
             
-            utterance.rate = 0.75; // Bajamos un poco más la velocidad para asegurar la unión fonética
+            utterance.rate = 0.75; 
             utterance.pitch = 1.2; 
             
             if (preferredVoice) {
@@ -300,6 +320,7 @@
             if (!isInitialized) {
                 isInitialized = true;
                 generateNewPractice();
+                startTimer(); // El cronómetro inicia con la primera interacción
             }
             playButton.disabled = true;
             speakSyllable(currentCorrectSyllable);
