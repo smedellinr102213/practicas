@@ -21,7 +21,7 @@
             background-color: var(--color-background);
             margin: 0;
             display: flex;
-            justify-content: center;
+            justify(content): center;
             align-items: center;
             min-height: 100vh;
             color: var(--color-text);
@@ -170,7 +170,6 @@
     </div>
 
     <script>
-        // Lista expandida con directas e inversas
         const allSyllables = [
             "ma", "am", "me", "em", "mi", "im", "mo", "om", "mu", "um",
             "pa", "ap", "pe", "ep", "pi", "ip", "po", "op", "pu", "up",
@@ -217,10 +216,15 @@
             if (!syllable) return;
             if (speechSynthesis.speaking) speechSynthesis.cancel();
 
-            // Usamos minúsculas para que el motor de voz no lo lea como siglas (ej: NA -> sodio)
-            const utterance = new SpeechSynthesisUtterance(syllable.toLowerCase());
+            // ESTRATEGIA PARA IPAD:
+            // 1. Usamos minúsculas.
+            // 2. Colocamos un punto al final. El punto indica al motor de voz que es una palabra terminada, no una sigla.
+            // 3. Añadimos un pequeño prefijo silencioso o espacio para estabilizar el motor.
+            const textToSpeak = syllable.toLowerCase() + "."; 
             
-            utterance.rate = 0.85; 
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            
+            utterance.rate = 0.75; // Bajamos un poco más la velocidad para asegurar la unión fonética
             utterance.pitch = 1.2; 
             
             if (preferredVoice) {
@@ -245,7 +249,7 @@
                 const radio = document.createElement('input');
                 radio.type = 'radio'; radio.name = 'syl'; radio.id = 's' + i; radio.value = syl;
                 const label = document.createElement('label');
-                label.htmlFor = 's' + i; label.textContent = syl; // Se muestra en minúsculas
+                label.htmlFor = 's' + i; label.textContent = syl;
                 label.classList.add('disabled');
                 optionsArea.appendChild(radio);
                 optionsArea.appendChild(label);
