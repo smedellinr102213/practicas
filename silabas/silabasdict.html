@@ -86,8 +86,6 @@
             margin-top: 10px;
         }
 
-        .syllable-options input[type="radio"] { display: none; }
-
         .syllable-options label {
             width: 95px;
             height: 95px;
@@ -100,50 +98,21 @@
             font-size: 2.2em;
             font-weight: 900;
             cursor: pointer;
-            transition: all 0.2s;
             color: var(--color-text);
         }
 
+        .syllable-options input[type="radio"] { display: none; }
         .syllable-options label.disabled { pointer-events: none; opacity: 0.5; }
-
         input:checked + label.correct { border-color: var(--color-success); background-color: #e8f5e9; transform: scale(1.05); }
         input:checked + label.incorrect { border-color: var(--color-error); background-color: #ffebee; }
 
-        .modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 85%;
-        }
-
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 85%; }
         .modal-success p { color: var(--color-success); font-size: 2em; font-weight: bold; }
         .modal-error p { color: var(--color-error); font-size: 2em; font-weight: bold; }
-
-        #modal-action-btn {
-            margin-top: 25px;
-            padding: 15px 45px;
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 1.3em;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
+        #modal-action-btn { margin-top: 25px; padding: 15px 45px; border: none; border-radius: 12px; color: white; font-size: 1.3em; font-weight: bold; cursor: pointer; }
         .modal-success #modal-action-btn { background-color: var(--color-success); }
         .modal-error #modal-action-btn { background-color: var(--color-error); }
-
         .hidden { display: none; }
     </style>
 </head>
@@ -163,7 +132,7 @@
 
         <main>
             <button id="play-syllable-btn"><i class="fas fa-volume-up"></i></button>
-            <p class="instruction" id="main-instruction">Toca la bocina para escuchar</p>
+            <p class="instruction">Toca la bocina para escuchar</p>
             <form id="syllable-options" class="syllable-options"></form>
         </main>
     </div>
@@ -194,10 +163,7 @@
         let preferredVoice = null;
         let isInitialized = false;
         let startTime = Date.now();
-        
-        let timerInterval;
-        let secondsElapsed = 0;
-        let timerStarted = false;
+        let timerInterval, secondsElapsed = 0, timerStarted = false;
 
         const optionsArea = document.getElementById('syllable-options');
         const playButton = document.getElementById('play-syllable-btn');
@@ -238,20 +204,29 @@
             if (!syllable) return;
             if (speechSynthesis.speaking) speechSynthesis.cancel();
 
-            // REPARACIÓN FONÉTICA DEFINITIVA:
-            // 1. Usamos minúsculas.
-            // 2. Envolvemos la sílaba con comas y espacios: ", " + syl + ", ". 
-            // Esto le dice al iPad: "Esto no es una abreviatura, es una palabra aislada".
-            // 3. Para la "o", bajamos un poco el pitch justo en esa sílaba para que suene más abierta.
+            // --- EL GRAN ARREGLO PARA EL IPAD ---
+            // Si enviamos "ne", dice "noreste". 
+            // Si enviamos "ne-e", el motor de voz se ve obligado a procesar la sílaba y no la sigla.
+            // La letra 'h' intercalada o repetir la vocal con un guion bajo ayuda a romper el diccionario.
             
-            const cleanSyl = syllable.toLowerCase();
-            const textToSpeak = ` , ${cleanSyl} , `; 
+            let phoneticText = syllable.toLowerCase();
+            
+            // Diccionario de excepciones críticas para iOS
+            const fix = {
+                "ne": "ne_e",
+                "vo": "vo_o",
+                "ud": "u_d",
+                "id": "i_d",
+                "om": "o_m",
+                "ba": "ba_a",
+                "ef": "e_f"
+            };
+
+            const textToSpeak = fix[phoneticText] || phoneticText;
             
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            
-            // Ajuste de tono dinámico para evitar que la 'o' suene como 'u'
-            utterance.pitch = cleanSyl.includes('o') ? 1.0 : 1.2;
-            utterance.rate = 0.7; // Un poco más lento para que la unión de las dos letras sea clara
+            utterance.rate = 0.65; // Más lento para que la 'o' sea 'o' y no 'u'
+            utterance.pitch = phoneticText.includes('o') ? 0.9 : 1.1;
             
             if (preferredVoice) {
                 utterance.voice = preferredVoice;
@@ -269,7 +244,6 @@
             const shuffled = [...allSyllables].sort(() => 0.5 - Math.random());
             currentCorrectSyllable = shuffled[0];
             const options = shuffled.slice(0, 5).sort(() => 0.5 - Math.random());
-
             optionsArea.innerHTML = '';
             options.forEach((syl, i) => {
                 const radio = document.createElement('input');
@@ -284,12 +258,10 @@
 
         function handleSelection(e) {
             if (!isInitialized || (Date.now() - startTime < 1000)) return;
-
             const selected = e.target.value;
             const label = document.querySelector(`label[for="${e.target.id}"]`);
             disableOptions();
             totalAttempts++;
-
             if (selected === currentCorrectSyllable) {
                 label.classList.add('correct');
                 completedCount++;
@@ -312,22 +284,11 @@
             modalActionButton.textContent = isCorrect ? "Siguiente" : "Volver a intentar";
         }
 
-        function enableOptions() {
-            document.querySelectorAll('label').forEach(l => l.classList.remove('disabled'));
-            optionsArea.addEventListener('change', handleSelection);
-        }
-
-        function disableOptions() {
-            document.querySelectorAll('label').forEach(l => l.classList.add('disabled'));
-            optionsArea.removeEventListener('change', handleSelection);
-        }
+        function enableOptions() { document.querySelectorAll('label').forEach(l => l.classList.remove('disabled')); optionsArea.addEventListener('change', handleSelection); }
+        function disableOptions() { document.querySelectorAll('label').forEach(l => l.classList.add('disabled')); optionsArea.removeEventListener('change', handleSelection); }
 
         playButton.addEventListener('click', () => {
-            if (!isInitialized) {
-                isInitialized = true;
-                generateNewPractice();
-                startTimer();
-            }
+            if (!isInitialized) { isInitialized = true; generateNewPractice(); startTimer(); }
             playButton.disabled = true;
             speakSyllable(currentCorrectSyllable);
         });
@@ -336,10 +297,7 @@
             mainModal.classList.add('hidden');
             if (modalContainer.classList.contains('modal-success')) {
                 generateNewPractice();
-                setTimeout(() => {
-                    playButton.disabled = true;
-                    speakSyllable(currentCorrectSyllable);
-                }, 300);
+                setTimeout(() => { playButton.disabled = true; speakSyllable(currentCorrectSyllable); }, 300);
             } else {
                 optionsArea.reset();
                 document.querySelectorAll('label').forEach(l => l.classList.remove('incorrect', 'correct'));
@@ -347,10 +305,7 @@
             }
         });
 
-        window.onload = () => {
-            countDisplay.textContent = `0 de 0`;
-            startTime = Date.now();
-        };
+        window.onload = () => { countDisplay.textContent = `0 de 0`; startTime = Date.now(); };
     </script>
 </body>
 </html>
