@@ -4,17 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Práctica Interactiva de Ecuaciones</title>
-    <!-- Tailwind CSS CDN para estilos rápidos y responsivos -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font 'Inter' -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <!-- Tone.js CDN para efectos de sonido -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f7f9fb;
-            touch-action: manipulation; /* Optimización para iPad (evita zoom accidental) */
+            touch-action: manipulation;
         }
         .flag {
             width: 30px;
@@ -83,7 +80,6 @@
             Balanceo de Ecuaciones (1er Grado)
         </h1>
         
-        <!-- Contador de Estadísticas - Mejorado para iPads -->
         <div class="flex justify-around text-sm font-semibold mb-6 p-3 bg-gray-100 rounded-lg">
             <p class="text-green-600">Resueltos: <span id="solved-counter" class="text-lg font-bold">0</span></p>
             <p class="text-red-600">Errores: <span id="error-counter" class="text-lg font-bold">0</span></p>
@@ -180,12 +176,10 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONFIGURACIÓN FIREBASE ---
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         let db, auth, userId = null;
 
-        // --- ESTADO LOCAL DEL CONTADOR (Inmediato para iPad) ---
         let localStats = { solvedCount: 0, errorCount: 0 };
 
         function updateDisplay() {
@@ -193,7 +187,6 @@
             document.getElementById('error-counter').textContent = localStats.errorCount;
         }
 
-        // --- INICIALIZACIÓN DE FIREBASE ---
         if (Object.keys(firebaseConfig).length > 0) {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
@@ -216,12 +209,9 @@
         async function syncWithCloud() {
             if (!db || !userId) return;
             const statsRef = doc(db, 'artifacts', appId, 'users', userId, 'stats', 'main');
-            
-            // Escuchar cambios de la nube pero priorizar lo que el niño está haciendo ahora
             onSnapshot(statsRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // Solo actualizamos localmente si los datos de la nube son mayores (para no perder progreso)
                     if (data.solvedCount > localStats.solvedCount) localStats.solvedCount = data.solvedCount;
                     if (data.errorCount > localStats.errorCount) localStats.errorCount = data.errorCount;
                     updateDisplay();
@@ -230,7 +220,7 @@
         }
 
         async function saveStats() {
-            updateDisplay(); // Actualiza la pantalla de inmediato
+            updateDisplay();
             if (!db || !userId) return;
             const statsRef = doc(db, 'artifacts', appId, 'users', userId, 'stats', 'main');
             try {
@@ -238,7 +228,6 @@
             } catch (e) { console.error("Error saving stats:", e); }
         }
 
-        // --- LÓGICA DEL JUEGO ---
         document.addEventListener('DOMContentLoaded', () => {
             const state = { currentPhase: 1, equation: {} };
             const synth = new Tone.Synth().toDestination();
@@ -271,32 +260,89 @@
             }
 
             function generateEquation() {
-                // Números pequeños para "Count On" (máximo 10-13)
-                const N = Math.floor(Math.random() * 3) + 3; // 3-5
-                const C_Var = Math.floor(Math.random() * 3) + 3; // 3-5
-                const R = N + C_Var; // R entre 6 y 10
+                // N siempre pequeño (1-10) para balanceo final con dedos
+                const N = Math.floor(Math.random() * 10) + 1;
+                
+                // Gap o salto para los dedos (max 10)
+                const fingersGap = Math.floor(Math.random() * 8) + 2; // de 2 a 10
 
-                let C_A, C_B, OP;
+                let C_A, C_B, OP, R, C_Var;
+
                 if (Math.random() < 0.5) {
+                    // CASO SUMA: Un número (hasta 50) + Un número pequeño (hasta 10)
                     OP = '+';
-                    C_A = Math.floor(Math.random() * (R - 2)) + 1;
-                    C_B = R - C_A;
+                    C_A = Math.floor(Math.random() * 40) + 1; // Base hasta 40
+                    C_B = fingersGap; // Salto pequeño
+                    R = C_A + C_B; // El resultado será máximo 50
+                    
+                    // Ahora definimos el otro lado (N + C_Var = R)
+                    // Como R puede ser hasta 50, y N es max 10, C_Var será max 49
+                    C_Var = R - N;
                 } else {
+                    // CASO RESTA: Diferencia pequeña (max 10 dedos) entre los números
                     OP = '-';
-                    C_B = Math.floor(Math.random() * 3) + 1;
-                    C_A = R + C_B; // Max 10+3=13
+                    // Queremos C_A - C_B = R. Para que puedan contar con los dedos,
+                    // la diferencia (R) debe ser <= 10.
+                    // Ejemplo: 35 - 29 = 6 (dedos del 29 al 35)
+                    R = fingersGap; 
+                    C_B = Math.floor(Math.random() * 40) + 1; // Base sustraendo hasta 40
+                    C_A = C_B + R; // El minuendo será máximo 50
+                    
+                    // Ahora definimos el otro lado (N + C_Var = R)
+                    // Como R es pequeño (max 10), C_Var y N deben ser pequeños
+                    C_Var = Math.floor(Math.random() * (R - 1)) + 1;
+                    // Ajustamos N para que calce exactamente
+                    const adjustedN = R - C_Var;
+                    
+                    return {
+                        N: adjustedN, C_Var, C_A, C_B, R, OP, 
+                        simplifySide: Math.random() < 0.5 ? 'right' : 'left',
+                        leftSide: "", rightSide: "", full: ""
+                    };
                 }
 
                 const simplifySide = Math.random() < 0.5 ? 'right' : 'left';
                 const complex = `${C_A} ${OP} ${C_B}`;
                 const simple = `N + ${C_Var}`;
 
-                return {
+                const eq = {
                     N, C_Var, C_A, C_B, R, OP, simplifySide,
                     leftSide: simplifySide === 'left' ? complex : simple,
-                    rightSide: simplifySide === 'right' ? complex : simple,
-                    full: simplifySide === 'left' ? `${complex} = ${simple}` : `${simple} = ${complex}`
+                    rightSide: simplifySide === 'right' ? complex : simple
                 };
+                eq.full = `${eq.leftSide} = ${eq.rightSide}`;
+                return eq;
+            }
+
+            function startNew() {
+                const eq = generateEquation();
+                state.equation = eq;
+                
+                // Parche de seguridad para strings vacíos
+                if (!eq.full) {
+                    state.equation.leftSide = eq.simplifySide === 'left' ? `${eq.C_A} ${eq.OP} ${eq.C_B}` : `N + ${eq.C_Var}`;
+                    state.equation.rightSide = eq.simplifySide === 'right' ? `${eq.C_A} ${eq.OP} ${eq.C_B}` : `N + ${eq.C_Var}`;
+                    state.equation.full = `${state.equation.leftSide} = ${state.equation.rightSide}`;
+                }
+
+                state.currentPhase = 1;
+                
+                document.getElementById('full-equation-display').textContent = state.equation.full;
+                document.getElementById('display-left-side').textContent = state.equation.leftSide;
+                document.getElementById('display-right-side').textContent = state.equation.rightSide;
+                
+                const lBox = document.getElementById('p1-left-container');
+                const rBox = document.getElementById('p1-right-container');
+                lBox.className = state.equation.simplifySide === 'left' ? 'p-2 border-2 rounded-lg border-blue-400 bg-blue-50' : 'p-2 border-2 rounded-lg border-green-400 bg-green-50';
+                rBox.className = state.equation.simplifySide === 'right' ? 'p-2 border-2 rounded-lg border-blue-400 bg-blue-50' : 'p-2 border-2 rounded-lg border-green-400 bg-green-50';
+
+                document.querySelectorAll('.flag').forEach(f => f.className = 'flag');
+                document.querySelectorAll('[id^="feedback-"]').forEach(f => f.textContent = '');
+                const wrapper = document.getElementById('alignment-wrapper');
+                wrapper.innerHTML = '';
+                document.getElementById('p4-final-balance-display').innerHTML = '';
+
+                showPhase(1);
             }
 
             function showPhase(p) {
@@ -305,52 +351,19 @@
                     if (el) el.style.display = i <= p ? 'block' : 'none';
                 }
                 if (p > 1) {
-                    document.getElementById(`phase-${p}-container`).scrollIntoView({ behavior: 'smooth' });
+                    const target = document.getElementById(`phase-${p}-container`);
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }
 
-            function startNew() {
-                state.equation = generateEquation();
-                state.currentPhase = 1;
-                
-                // Reset UI
-                document.getElementById('full-equation-display').textContent = state.equation.full;
-                document.getElementById('display-left-side').textContent = state.equation.leftSide;
-                document.getElementById('display-right-side').textContent = state.equation.rightSide;
-                
-                // Colorización de bloques
-                const lBox = document.getElementById('p1-left-container');
-                const rBox = document.getElementById('p1-right-container');
-                if(state.equation.simplifySide === 'left') {
-                    lBox.className = 'p-2 border-2 rounded-lg border-blue-400 bg-blue-50';
-                    rBox.className = 'p-2 border-2 rounded-lg border-green-400 bg-green-50';
-                } else {
-                    lBox.className = 'p-2 border-2 rounded-lg border-green-400 bg-green-50';
-                    rBox.className = 'p-2 border-2 rounded-lg border-blue-400 bg-blue-50';
-                }
-
-                document.querySelectorAll('.flag').forEach(f => f.className = 'flag');
-                document.querySelectorAll('[id^="feedback-"]').forEach(f => f.textContent = '');
-                document.querySelectorAll('input').forEach(i => { i.value = ''; i.disabled = false; });
-                document.querySelectorAll('button').forEach(b => b.disabled = false);
-
-                showPhase(1);
-            }
-
-            // --- EVENTOS ---
             document.getElementById('select-left-btn').onclick = () => handleP1('left');
             document.getElementById('select-right-btn').onclick = () => handleP1('right');
 
             function handleP1(side) {
                 if (side === state.equation.simplifySide) {
                     updateFlag(1, true, "¡Ese es el lado correcto!");
-                    document.getElementById('select-left-btn').disabled = true;
-                    document.getElementById('select-right-btn').disabled = true;
-                    
-                    // Preparar Paso 2
                     const complexHTML = `<div class="complex-side-highlight text-blue-600">${state.equation.C_A} ${state.equation.OP} ${state.equation.C_B}</div>`;
                     const simpleHTML = `<div class="text-green-600">N + ${state.equation.C_Var}</div>`;
-                    
                     document.getElementById('p2-left-display').innerHTML = state.equation.simplifySide === 'left' ? complexHTML : simpleHTML;
                     document.getElementById('p2-right-display').innerHTML = state.equation.simplifySide === 'right' ? complexHTML : simpleHTML;
                     
@@ -361,59 +374,51 @@
                     } else {
                         wrapper.innerHTML = `<div class="invisible-align w-1/2">N + 0 =</div><div class="w-1/2 flex justify-center">${inputHTML}</div>`;
                     }
-                    
-                    setTimeout(() => showPhase(2), 800);
+                    setTimeout(() => showPhase(2), 600);
                 } else {
                     updateFlag(1, false, "Ese lado tiene la N, busca el otro.");
                 }
             }
 
             document.getElementById('check-phase-2-btn').onclick = () => {
-                const val = parseInt(document.getElementById('input-p2').value);
+                const input = document.getElementById('input-p2');
+                if (!input) return;
+                const val = parseInt(input.value);
                 if (val === state.equation.R) {
                     updateFlag(2, true, `¡Sí! Es ${state.equation.R}.`);
-                    document.getElementById('input-p2').disabled = true;
-                    document.getElementById('check-phase-2-btn').disabled = true;
-
-                    // Preparar Paso 3 y 4
+                    input.disabled = true;
                     const R = state.equation.R;
                     const CV = state.equation.C_Var;
                     const simL = state.equation.simplifySide === 'left' ? R : `N + ${CV}`;
                     const simR = state.equation.simplifySide === 'right' ? R : `N + ${CV}`;
                     document.getElementById('p3-simplified-display').innerHTML = `<span>${simL}</span> <span>=</span> <span>${simR}</span>`;
-
                     const inputN = `<input type="number" id="input-p3" class="equation-box input-box w-20" placeholder="N">`;
                     const varSide = `<div class="flex items-center space-x-2">${inputN} <span>+</span> <span>${CV}</span></div>`;
                     const constSide = `<span class="text-blue-600">${R}</span>`;
-                    
-                    document.getElementById('p4-final-balance-display').innerHTML = 
-                        state.equation.simplifySide === 'right' ? `${varSide} = ${constSide}` : `${constSide} = ${varSide}`;
-
-                    setTimeout(() => showPhase(3), 800);
+                    document.getElementById('p4-final-balance-display').innerHTML = state.equation.simplifySide === 'right' ? `${varSide} = ${constSide}` : `${constSide} = ${varSide}`;
+                    setTimeout(() => showPhase(3), 600);
                 } else {
-                    updateFlag(2, false, "Cuenta con tus dedos otra vez.");
+                    updateFlag(2, false, "Cuenta con tus dedos la diferencia.");
                 }
             };
 
             document.getElementById('check-phase-3-btn').onclick = () => {
-                const val = parseInt(document.getElementById('input-p3').value);
+                const input = document.getElementById('input-p3');
+                if (!input) return;
+                const val = parseInt(input.value);
                 if (val === state.equation.N) {
                     updateFlag(3, true, "¡Lo lograste!");
-                    document.getElementById('input-p3').disabled = true;
-                    document.getElementById('check-phase-3-btn').disabled = true;
+                    input.disabled = true;
                     document.getElementById('final-answer-display').textContent = state.equation.N;
-                    
                     localStats.solvedCount++;
                     saveStats();
-                    
-                    setTimeout(() => showPhase(4), 800);
+                    setTimeout(() => showPhase(4), 600);
                 } else {
-                    updateFlag(3, false, `¿Qué número más ${state.equation.C_Var} da ${state.equation.R}?`);
+                    updateFlag(3, false, `¿Qué número sumado a ${state.equation.C_Var} da ${state.equation.R}?`);
                 }
             };
 
             document.getElementById('reset-btn').onclick = startNew;
-
             startNew();
         });
     </script>
