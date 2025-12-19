@@ -50,11 +50,17 @@
             box-shadow: 0 0 0 #047857;
             transform: translateY(8px);
         }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
     </style>
 </head>
 <body>
 
-    <div id="main-container" class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl space-y-8 relative border-b-8 border-emerald-600 mx-4">
+    <div id="main-container" class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl space-y-8 relative border-b-8 border-emerald-600 mx-4 text-center">
         
         <!-- Cabecera -->
         <div class="flex justify-between items-center">
@@ -62,10 +68,7 @@
                 Palabra: <span id="count">1</span> / 500
             </div>
             <div class="text-emerald-700 font-bold flex items-center space-x-1">
-                <span class="text-xs uppercase tracking-tighter">Modo Offline</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span class="text-xs uppercase tracking-widest">Modo Libre</span>
             </div>
         </div>
 
@@ -76,12 +79,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 </svg>
             </button>
-            <p class="text-emerald-800 font-medium">Toca para escuchar</p>
+            <p class="text-emerald-800 font-bold text-lg">Toca para escuchar</p>
         </div>
 
         <!-- Área de Entrada -->
         <div class="space-y-4">
-            <input type="text" id="input-word" class="input-word" placeholder="..." autocomplete="off" autofocus>
+            <input type="text" id="input-word" class="input-word" placeholder="..." autocomplete="off" spellcheck="false">
             <p class="text-center text-emerald-600 text-sm font-bold uppercase tracking-widest">Presiona ENTER para revisar</p>
         </div>
 
@@ -92,7 +95,7 @@
     </div>
 
     <script>
-        // Banco de palabras ampliado
+        // Banco de palabras
         const words = ["blusa", "brazo", "clase", "clavo", "crema", "crudo", "dragón", "dril", "fresa", "fruta", "flaco", "flota", "globo", "glaciar", "gratis", "gruta", "pluma", "plato", "primo", "presa", "trigo", "tren", "atleta", "tabla", "libro", "sobre", "cerca", "arco", "alto", "azul", "isla", "antes", "diez", "nariz", "luz", "pobre", "pueblo", "cobre", "brillo", "broche", "clima", "chicle", "claxon", "flecha", "flojo", "flauta", "glicerina", "regla", "siglo", "pleno", "soplo", "planta", "precio", "pronto", "prueba", "truco", "potro", "trapo", "trama", "triunfo", "broma", "bruma", "bravo", "bloque", "blanco", "clavel", "clínica", "cloro", "cráneo", "creer", "cristal", "cromo", "crujir", "drama", "drenar", "droga", "drástico", "frase", "freno", "frotar", "fresco", "fruncir", "flama", "fleco", "fluir", "flúor", "grado", "grano", "grito", "groso", "grupo", "pradera", "predio", "prisa", "proa", "prudente", "traje", "tregua", "trío", "trozo", "trucha"];
 
         let index = 0;
@@ -103,16 +106,15 @@
         const inputWord = document.getElementById('input-word');
         const countDisplay = document.getElementById('count');
 
-        // --- Configuración de Voz Nativa (Sin API Key) ---
+        // Configuración de Voz Nativa (Gratuita y compatible con iPad/GitHub)
         function setVoice() {
             const voices = window.speechSynthesis.getVoices();
-            // Prioridad a voces femeninas o en español de México/España
-            preferredVoice = voices.find(v => v.lang.startsWith('es') && /mexico|soft|helena|sabrina|pablo/i.test(v.name)) 
+            // Buscar una voz en español (femenina si es posible)
+            preferredVoice = voices.find(v => v.lang.startsWith('es') && /mexico|sabrina|helena|pau|sofi/i.test(v.name)) 
                              || voices.find(v => v.lang.startsWith('es')) 
                              || voices[0];
         }
 
-        // Para navegadores que cargan voces asíncronamente
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = setVoice;
         }
@@ -123,8 +125,8 @@
             
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.voice = preferredVoice;
-            utterance.rate = 0.85; // Un poco más lento para dictado
-            utterance.pitch = 1.2; // Tono más infantil/amigable
+            utterance.rate = 0.8; // Velocidad para dictado
+            utterance.pitch = 1.2; // Tono amigable
             utterance.lang = 'es-MX';
             speechSynthesis.speak(utterance);
         }
@@ -135,22 +137,19 @@
 
         function celebrate() {
             const colors = ['#10b981', '#34d399', '#059669', '#6ee7b7'];
-            const container = document.getElementById('main-container');
-            const rect = container.getBoundingClientRect();
-
-            for (let i = 0; i < 50; i++) {
+            for (let i = 0; i < 40; i++) {
                 const p = document.createElement('div');
                 p.className = 'firecracker';
                 p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                 const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * 250 + 50;
+                const dist = Math.random() * 200 + 50;
                 p.style.setProperty('--tw-x', `${Math.cos(angle) * dist}px`);
                 p.style.setProperty('--tw-y', `${Math.sin(angle) * dist}px`);
                 p.style.left = '50%';
                 p.style.top = '50%';
-                p.style.animation = `particle 1s ease-out forwards`;
+                p.style.animation = `particle 0.8s ease-out forwards`;
                 document.body.appendChild(p);
-                setTimeout(() => p.remove(), 1000);
+                setTimeout(() => p.remove(), 800);
             }
         }
 
@@ -169,7 +168,6 @@
             }
         }
 
-        // Listeners
         btnPlay.addEventListener('click', () => {
             speak(words[index]);
             inputWord.focus();
@@ -181,7 +179,6 @@
             inputWord.value = "";
             countDisplay.innerText = index + 1;
             inputWord.focus();
-            // Pequeño retraso para que no se pegue la voz al cambiar
             setTimeout(() => speak(words[index]), 300);
         });
 
@@ -189,20 +186,10 @@
             if (e.key === 'Enter') check();
         });
 
-        // Asegurar foco inicial
+        // Foco inicial con retraso para iOS
         window.onload = () => {
-            setTimeout(() => inputWord.focus(), 500);
+            setTimeout(() => inputWord.focus(), 600);
         };
     </script>
-
-    <!-- Estilo para la animación de error -->
-    <style>
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-        .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
-    </style>
 </body>
 </html>
