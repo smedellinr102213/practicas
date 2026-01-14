@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valor Posicional - Decenas y Unidades (B/N)</title>
+    <title>Valor Posicional - 22 Retos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
@@ -43,20 +43,19 @@
             border: 2px solid #cbd5e1;
         }
 
-        /* Estilos para los bloques SIN COLOR (Blanco y Negro / Gris) */
         .ten-rod {
-            width: 25px;
-            height: 125px;
-            background: #f1f5f9; /* Gris muy claro */
-            border: 2px solid #1e293b; /* Borde oscuro para contraste */
+            width: 20px;
+            height: 110px;
+            background: #f1f5f9;
+            border: 2px solid #1e293b;
             border-radius: 2px;
             position: relative;
-            background-image: repeating-linear-gradient(0deg, transparent, transparent 11px, #1e293b 11px, #1e293b 12.5px);
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 9.5px, #1e293b 9.5px, #1e293b 11px);
         }
 
         .unit-cube {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             background: #f1f5f9;
             border: 2px solid #1e293b;
             border-radius: 2px;
@@ -64,7 +63,7 @@
 
         .units-container {
             display: grid;
-            grid-template-columns: repeat(2, 20px);
+            grid-template-columns: repeat(2, 18px);
             gap: 4px;
             align-items: end;
         }
@@ -74,7 +73,7 @@
             border: 3px solid #e2e8f0;
             border-radius: 20px;
             padding: 15px;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 900;
             transition: all 0.2s;
             cursor: pointer;
@@ -82,7 +81,7 @@
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
-        .num-btn:active { transform: scale(0.9); }
+        .num-btn:active { transform: scale(0.95); }
         .num-btn.correct { background: #dcfce7; border-color: #22c55e; color: #166534; }
         .num-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
 
@@ -98,14 +97,13 @@
 <body>
 
     <div class="math-card">
-        <!-- Cabecera neutra -->
         <div class="bg-slate-800 p-5 flex justify-between items-center text-white">
             <div class="flex items-center gap-2">
                 <span class="text-2xl">🔢</span>
                 <h1 class="text-xl font-black uppercase">Bloques Multibase</h1>
             </div>
             <div class="flex gap-3 text-white">
-                <div class="stat-badge text-white bg-slate-700" id="progress">1 / 15</div>
+                <div class="stat-badge text-white bg-slate-700" id="progress">1 / 22</div>
                 <div class="stat-badge text-yellow-400 bg-slate-700">⭐ <span id="score" class="text-white">0</span></div>
             </div>
         </div>
@@ -113,30 +111,24 @@
         <div id="game-container">
             <div class="p-6 text-center">
                 <h2 class="text-xl font-bold text-slate-700 mb-6">Cuenta las decenas y las unidades:</h2>
-                
-                <!-- Visualización de Bloques (Sin color) -->
-                <div class="blocks-display" id="blockArea">
-                    <!-- Dinámico -->
-                </div>
+                <div class="blocks-display" id="blockArea"></div>
             </div>
 
-            <!-- Opciones -->
             <div id="options" class="grid grid-cols-2 gap-4 px-6 pb-6"></div>
 
             <div class="px-6 pb-8 text-center">
-                <button id="nextBtn" class="hidden w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-black">
+                <button id="nextBtn" class="hidden w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-black transition-colors">
                     SIGUIENTE ➔
                 </button>
             </div>
         </div>
 
-        <!-- Pantalla Final -->
         <div id="finish-screen" class="hidden p-12 text-center">
             <div class="text-7xl mb-4">🎓</div>
             <h2 class="text-4xl font-black text-slate-800 mb-2">¡Completado!</h2>
-            <p class="text-slate-500 font-bold mb-6">Has identificado correctamente todas las cantidades.</p>
-            <div class="text-6xl font-black text-slate-900 mb-8" id="finalScore">0 / 15</div>
-            <button onclick="location.reload()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold">REINTENTAR</button>
+            <p class="text-slate-500 font-bold mb-6">Has terminado los 22 desafíos de valor posicional.</p>
+            <div class="text-6xl font-black text-slate-900 mb-8" id="finalScore">0 / 22</div>
+            <button onclick="location.reload()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-transform active:scale-95">REINTENTAR</button>
         </div>
     </div>
 
@@ -145,13 +137,41 @@
         let score = 0;
         let canAnswer = true;
         let correctAnswer = 0;
-        const totalQuestions = 15;
+        const totalQuestions = 22;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Generador de sonidos sintéticos
+        function playSound(type) {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'success') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            } else {
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+                oscillator.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            }
+        }
 
         function speak(text) {
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'es-MX';
-            msg.rate = 1;
+            msg.rate = 1.1;
             window.speechSynthesis.speak(msg);
         }
 
@@ -160,15 +180,14 @@
             document.getElementById('nextBtn').classList.add('hidden');
             document.getElementById('progress').innerText = `${currentIdx + 1} / ${totalQuestions}`;
 
-            // Diversificación: Números más altos (hasta 99)
-            // Para niños pequeños, mantengamos decenas entre 0-9 y unidades entre 0-9
-            let tens = Math.floor(Math.random() * 10); 
-            let units = Math.floor(Math.random() * 10);
+            // Máximo 100 (10 decenas y 0 unidades o combinaciones)
+            let tens = Math.floor(Math.random() * 11); // 0 a 10
+            let units = Math.floor(Math.random() * 10); // 0 a 9
             
             correctAnswer = (tens * 10) + units;
             
-            // Asegurarnos que no sea 0
-            if (correctAnswer === 0) return generateProblem();
+            // Límite de 100 y evitar 0
+            if (correctAnswer === 0 || correctAnswer > 100) return generateProblem();
 
             const area = document.getElementById('blockArea');
             area.innerHTML = '';
@@ -184,8 +203,7 @@
             if (units > 0) {
                 const unitsCont = document.createElement('div');
                 unitsCont.className = 'units-container';
-                // Si hay muchas unidades, expandir columnas
-                if (units > 6) unitsCont.style.gridTemplateColumns = "repeat(3, 20px)";
+                if (units > 6) unitsCont.style.gridTemplateColumns = "repeat(3, 18px)";
                 
                 for (let i = 0; i < units; i++) {
                     const cube = document.createElement('div');
@@ -195,26 +213,26 @@
                 area.appendChild(unitsCont);
             }
 
-            // Crear opciones inteligentes
             let options = [correctAnswer];
             
-            // Añadir distractores comunes
-            if (tens !== units) {
-                // Inversión de dígitos (ej. 32 -> 23)
-                let reversed = parseInt(correctAnswer.toString().split('').reverse().join(''));
-                if (reversed !== correctAnswer && reversed > 0) options.push(reversed);
-            }
-
+            // Distractores
             while (options.length < 4) {
                 let fake;
                 const r = Math.random();
-                if (r < 0.5) fake = correctAnswer + (Math.random() > 0.5 ? 10 : -10); // Error de 1 decena
-                else fake = correctAnswer + (Math.random() > 0.5 ? 1 : -1); // Error de 1 unidad
+                if (r < 0.4 && tens > 0 && tens < 10) {
+                    // Invertir dígitos si es posible (ej 42 -> 24)
+                    let rev = parseInt(correctAnswer.toString().split('').reverse().join(''));
+                    fake = (rev !== correctAnswer && rev > 0) ? rev : correctAnswer + 5;
+                } else if (r < 0.7) {
+                    fake = correctAnswer + (Math.random() > 0.5 ? 10 : -10); 
+                } else {
+                    fake = correctAnswer + (Math.random() > 0.5 ? 1 : -1);
+                }
                 
-                if (fake > 0 && fake < 100 && !options.includes(fake)) {
+                if (fake > 0 && fake <= 100 && !options.includes(fake)) {
                     options.push(fake);
-                } else if (options.length < 4) {
-                    let rand = Math.floor(Math.random() * 98) + 1;
+                } else {
+                    let rand = Math.floor(Math.random() * 100) + 1;
                     if (!options.includes(rand)) options.push(rand);
                 }
             }
@@ -239,11 +257,12 @@
                 btn.classList.add('correct');
                 score++;
                 document.getElementById('score').innerText = score;
-                speak("¡Sí! Es el " + val);
+                playSound('success');
+                speak("¡Excelente! Es el " + val);
             } else {
                 btn.classList.add('wrong');
-                speak("Ese es el " + val + ". Contamos " + correctAnswer);
-                // Resaltar el correcto
+                playSound('error');
+                speak("No, ese es el " + val + ". La respuesta correcta es " + correctAnswer);
                 Array.from(document.getElementsByClassName('num-btn')).forEach(b => {
                     if (parseInt(b.innerText) === correctAnswer) b.classList.add('correct');
                 });
