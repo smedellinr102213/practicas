@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balance Numérico - Sumas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+        
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: #f8fafc; 
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .math-card {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            border: 4px solid #f1f5f9;
+            overflow: hidden;
+        }
+
+        .equation-display {
+            background: #f1f5f9;
+            border-radius: 24px;
+            padding: 40px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #1e293b;
+        }
+
+        .missing-box {
+            width: 85px;
+            height: 85px;
+            background: white;
+            border: 5px dashed #3b82f6;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); border-color: #3b82f6; }
+            50% { transform: scale(1.05); border-color: #93c5fd; }
+        }
+
+        .num-btn {
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 20px;
+            font-size: 2.2rem;
+            font-weight: 900;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .num-btn:active { transform: scale(0.9); }
+        .num-btn.correct { background: #dcfce7; border-color: #22c55e; color: #166534; }
+        .num-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+
+        .stat-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="math-card">
+        <!-- Cabecera -->
+        <div class="bg-indigo-600 p-5 flex justify-between items-center text-white">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">⚖️</span>
+                <h1 class="text-xl font-black uppercase">Balance de Sumas</h1>
+            </div>
+            <div class="flex gap-3">
+                <div class="stat-badge" id="progress">1 / 22</div>
+                <div class="stat-badge text-yellow-300">⭐ <span id="score">0</span></div>
+            </div>
+        </div>
+
+        <div id="game-container">
+            <div class="p-6 text-center">
+                <h2 class="text-xl font-bold text-slate-600 mb-4">Encuentra el número que iguala la suma:</h2>
+                
+                <!-- Visualización de la Ecuación -->
+                <div class="equation-display" id="equationArea">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+
+            <!-- Opciones -->
+            <div id="options" class="grid grid-cols-2 gap-4 px-6 pb-6"></div>
+
+            <div class="px-6 pb-8">
+                <button id="nextBtn" class="hidden w-full bg-emerald-500 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-emerald-600">
+                    SIGUIENTE ➔
+                </button>
+            </div>
+        </div>
+
+        <!-- Pantalla Final -->
+        <div id="finish-screen" class="hidden p-12 text-center">
+            <div class="text-7xl mb-4">🎉</div>
+            <h2 class="text-4xl font-black text-slate-800 mb-2">¡Completado!</h2>
+            <p class="text-slate-500 font-bold mb-6">Has igualado las 22 ecuaciones correctamente.</p>
+            <div class="text-6xl font-black text-indigo-600 mb-8" id="finalScore">0 / 22</div>
+            <button onclick="location.reload()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold">EMPEZAR DE NUEVO</button>
+        </div>
+    </div>
+
+    <script>
+        let currentIdx = 0;
+        let score = 0;
+        let canAnswer = true;
+        let correctAnswer = 0;
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'es-MX';
+            msg.rate = 1;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function generateProblem() {
+            canAnswer = true;
+            document.getElementById('nextBtn').classList.add('hidden');
+            document.getElementById('progress').innerText = `${currentIdx + 1} / 22`;
+
+            // Decidir si el resultado va al final (A+B=C) o al principio (C=A+B)
+            const resultAtStart = Math.random() > 0.5;
+            
+            // Generar valores de suma (hasta 20 para primer grado)
+            const result = Math.floor(Math.random() * 13) + 3; // Total entre 3 y 15
+            const a = Math.floor(Math.random() * (result - 1)) + 1;
+            const b = result - a;
+
+            // Decidir qué parte falta (0: primer sumando, 1: segundo sumando)
+            const missingPos = Math.floor(Math.random() * 2); 
+            correctAnswer = (missingPos === 0) ? a : b;
+
+            const area = document.getElementById('equationArea');
+            area.innerHTML = '';
+
+            if (resultAtStart) {
+                // Formato: C = ? + B o C = A + ?
+                if (missingPos === 0) {
+                    area.innerHTML = `<span>${result}</span> <span>=</span> <div class="missing-box">?</div> <span>+</span> <span>${b}</span>`;
+                } else {
+                    area.innerHTML = `<span>${result}</span> <span>=</span> <span>${a}</span> <span>+</span> <div class="missing-box">?</div>`;
+                }
+            } else {
+                // Formato: ? + B = C o A + ? = C
+                if (missingPos === 0) {
+                    area.innerHTML = `<div class="missing-box">?</div> <span>+</span> <span>${b}</span> <span>=</span> <span>${result}</span>`;
+                } else {
+                    area.innerHTML = `<span>${a}</span> <span>+</span> <div class="missing-box">?</div> <span>=</span> <span>${result}</span>`;
+                }
+            }
+
+            // Crear opciones
+            let options = [correctAnswer];
+            while (options.length < 4) {
+                let fake = correctAnswer + (Math.floor(Math.random() * 7) - 3);
+                if (fake >= 0 && !options.includes(fake)) {
+                    options.push(fake);
+                }
+            }
+            options.sort(() => 0.5 - Math.random());
+
+            const optsDiv = document.getElementById('options');
+            optsDiv.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'num-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, btn);
+                optsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(val, btn) {
+            if (!canAnswer) return;
+            canAnswer = false;
+
+            if (val === correctAnswer) {
+                btn.classList.add('correct');
+                score++;
+                document.getElementById('score').innerText = score;
+                speak("¡Correcto!");
+                // Mostrar número en el cuadro
+                document.querySelector('.missing-box').innerText = correctAnswer;
+                document.querySelector('.missing-box').style.borderColor = "#22c55e";
+                document.querySelector('.missing-box').style.color = "#22c55e";
+            } else {
+                btn.classList.add('wrong');
+                speak("No es ese. Falta el número " + correctAnswer);
+                // Resaltar el correcto
+                Array.from(document.getElementsByClassName('num-btn')).forEach(b => {
+                    if (parseInt(b.innerText) === correctAnswer) b.classList.add('correct');
+                });
+            }
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        document.getElementById('nextBtn').onclick = () => {
+            currentIdx++;
+            if (currentIdx < 22) {
+                generateProblem();
+            } else {
+                document.getElementById('game-container').classList.add('hidden');
+                document.getElementById('finish-screen').classList.remove('hidden');
+                document.getElementById('finalScore').innerText = `${score} / 22`;
+            }
+        };
+
+        window.onload = generateProblem;
+    </script>
+</body>
+</html>
