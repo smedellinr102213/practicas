@@ -11,7 +11,6 @@
     <style>
         @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .animate-bounce-slow { animation: bounce-slow 2s infinite; }
-        .shape-container svg { filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); }
         body { -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
@@ -21,48 +20,28 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
-        const Icon = ({ name, size = 24, className = "" }) => {
-            const icons = {
-                volume: <path d="M11 5L6 9H2v6h4l5 4V5zm4.54 3.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />,
-                check: <polyline points="20 6 9 17 4 12" />,
-                x: (
-                    <React.Fragment>
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </React.Fragment>
-                ),
-                refresh: <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            };
-            return (
-                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                    {icons[name.toLowerCase()] || null}
-                </svg>
-            );
-        };
-
         const App = () => {
             const [currentShape, setCurrentShape] = useState(null);
             const [score, setScore] = useState(0);
             const [errors, setErrors] = useState(0);
             const [status, setStatus] = useState('idle');
             const [hasInteracted, setHasInteracted] = useState(false);
-            const [selectedVoice, setSelectedVoice] = useState(null);
+            const [voicesLoaded, setVoicesLoaded] = useState(false);
             
             const synth = window.speechSynthesis;
-            const voiceRef = useRef(null);
+            const voicesRef = useRef([]);
 
-            // Lógica de selección de voz optimizada para iOS/Safari
-            const loadVoices = useCallback(() => {
+            // 1. Selección de Voz: Lógica de priorización para iOS
+            const getBestVoice = useCallback(() => {
                 const voices = synth.getVoices();
-                if (voices.length === 0) return;
-
-                // Prioridad 1: Voces específicas femeninas/infantiles en español
+                
+                // Prioridad 1: Voces en español con nombres femeninos o infantiles
                 let voice = voices.find(v => 
-                    (v.lang.startsWith('es')) && 
-                    (/(sofia|sandra|monica|paulina|angelica|child|female|niña|femenina)/i.test(v.name))
+                    v.lang.startsWith('es') && 
+                    /(sofía|sofia|sandra|niña|femenina|female|paulina|mónica|monica)/i.test(v.name)
                 );
 
-                // Prioridad 2: Cualquier voz de México (es-MX)
+                // Prioridad 2: Voz predeterminada de México (es-MX)
                 if (!voice) {
                     voice = voices.find(v => v.lang === 'es-MX');
                 }
@@ -72,90 +51,62 @@
                     voice = voices.find(v => v.lang.startsWith('es'));
                 }
 
-                voiceRef.current = voice;
-                setSelectedVoice(voice);
+                return voice;
             }, [synth]);
 
+            // 2. Gestión Asíncrona: Evento onvoiceschanged
             useEffect(() => {
-                if (!synth) return;
-                
-                loadVoices();
-                // Manejar carga asíncrona de voces en Safari/Chrome
-                if (synth.onvoiceschanged !== undefined) {
-                    synth.onvoiceschanged = loadVoices;
-                }
-            }, [loadVoices, synth]);
+                const updateVoices = () => {
+                    voicesRef.current = synth.getVoices();
+                    if (voicesRef.current.length > 0) {
+                        setVoicesLoaded(true);
+                    }
+                };
 
-            const shapes = [
-                { id: 1, name: 'Círculo', isEqual: true, svg: (
-                    <g stroke="currentColor" strokeWidth="4" fill="none">
-                        <circle cx="100" cy="100" r="80" stroke="#3b82f6" fill="#dbeafe" />
-                        <line x1="100" y1="20" x2="100" y2="180" stroke="#1d4ed8" strokeDasharray="8" />
-                    </g>
-                )},
-                { id: 2, name: 'Cuadrado', isEqual: true, svg: (
-                    <g stroke="currentColor" strokeWidth="4" fill="none">
-                        <rect x="30" y="30" width="140" height="140" stroke="#3b82f6" fill="#dbeafe" />
-                        <line x1="30" y1="30" x2="170" y2="170" stroke="#1d4ed8" strokeDasharray="8" />
-                    </g>
-                )},
-                { id: 3, name: 'Triángulo', isEqual: true, svg: (
-                    <g stroke="currentColor" strokeWidth="4" fill="none">
-                        <path d="M100 20 L180 160 L20 160 Z" stroke="#3b82f6" fill="#dbeafe" />
-                        <line x1="100" y1="20" x2="100" y2="160" stroke="#1d4ed8" strokeDasharray="8" />
-                    </g>
-                )},
-                { id: 4, name: 'Círculo Mal', isEqual: false, svg: (
-                    <g stroke="currentColor" strokeWidth="4" fill="none">
-                        <circle cx="100" cy="100" r="80" stroke="#f43f5e" fill="#ffe4e6" />
-                        <line x1="140" y1="35" x2="140" y2="165" stroke="#be123c" strokeDasharray="8" />
-                    </g>
-                )},
-                { id: 5, name: 'Cuadrado Mal', isEqual: false, svg: (
-                    <g stroke="currentColor" strokeWidth="4" fill="none">
-                        <rect x="30" y="30" width="140" height="140" stroke="#f43f5e" fill="#ffe4e6" />
-                        <line x1="30" y1="80" x2="170" y2="80" stroke="#be123c" strokeDasharray="8" />
-                    </g>
-                )},
-                { id: 6, name: 'Rectángulo Mal', isEqual: false, svg: (
-                    <g stroke="currentColor" strokeWidth="4" fill="none">
-                        <rect x="20" y="50" width="160" height="100" stroke="#f43f5e" fill="#ffe4e6" />
-                        <line x1="60" y1="50" x2="60" y2="150" stroke="#be123c" strokeDasharray="8" />
-                    </g>
-                )}
-            ];
+                if (synth.onvoiceschanged !== undefined) {
+                    synth.onvoiceschanged = updateVoices;
+                }
+                updateVoices();
+            }, [synth]);
 
             const speak = (text) => {
-                if (!synth) return;
+                if (!synth || !hasInteracted) return;
+                
+                // Cancelar cualquier locución previa (crucial para Safari)
                 synth.cancel();
-                
-                const utter = new SpeechSynthesisUtterance(text);
-                
-                // Aplicar voz detectada
-                if (voiceRef.current) {
-                    utter.voice = voiceRef.current;
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                const selectedVoice = getBestVoice();
+
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
                 }
-                
-                // Parámetros de optimización para tono infantil/femenino natural
-                utter.lang = 'es-MX';
-                utter.rate = 0.9;  // Ligeramente más lento
-                utter.pitch = 1.2; // Tono más agudo/infantil
-                
-                synth.speak(utter);
+
+                // Parámetros estrictos de optimización
+                utterance.lang = 'es-MX';
+                utterance.rate = 0.9;  // Ligeramente más lenta
+                utterance.pitch = 1.2; // Tono más agudo/infantil
+
+                synth.speak(utterance);
             };
+
+            const shapes = [
+                { id: 1, name: 'Círculo', isEqual: true, color: '#3b82f6', bg: '#dbeafe', path: (
+                    <circle cx="100" cy="100" r="80" />
+                ), line: <line x1="100" y1="20" x2="100" y2="180" strokeDasharray="8" /> },
+                { id: 2, name: 'Círculo desigual', isEqual: false, color: '#f43f5e', bg: '#ffe4e6', path: (
+                    <circle cx="100" cy="100" r="80" />
+                ), line: <line x1="140" y1="35" x2="140" y2="165" strokeDasharray="8" /> }
+            ];
 
             const nextChallenge = useCallback(() => {
                 const random = shapes[Math.floor(Math.random() * shapes.length)];
                 setCurrentShape(random);
                 setStatus('idle');
                 if (hasInteracted) {
-                    setTimeout(() => speak("¿Están divididas en mitades iguales?"), 100);
+                    setTimeout(() => speak("¿Están divididas en mitades iguales?"), 500);
                 }
-            }, [hasInteracted, shapes]);
-
-            useEffect(() => {
-                nextChallenge();
-            }, []);
+            }, [hasInteracted]);
 
             const handleAnswer = (choice) => {
                 if (status !== 'idle') return;
@@ -163,99 +114,87 @@
                 if (choice === currentShape.isEqual) {
                     setStatus('correct');
                     setScore(s => s + 1);
-                    speak(choice ? "¡Sí! Son mitades iguales." : "¡Correcto! No son iguales.");
-                    setTimeout(nextChallenge, 2200);
+                    speak("¡Sí! Es correcto.");
+                    setTimeout(nextChallenge, 2000);
                 } else {
                     setStatus('wrong');
-                    setErrors(prev => prev + 1);
-                    speak("¡Oh no! Mira bien el tamaño de las partes.");
+                    setErrors(e => e + 1);
+                    speak("¡Oh no! Inténtalo de nuevo.");
                     setTimeout(() => setStatus('idle'), 1500);
                 }
             };
 
-            const startGame = () => {
-                // En iOS, la primera locución DEBE ser disparada por una acción del usuario
+            const startApp = () => {
                 setHasInteracted(true);
-                speak("¡Hola! ¿Están divididas en mitades iguales? Mira la figura.");
+                // Safari requiere una activación de voz inmediata en el primer clic
+                const intro = new SpeechSynthesisUtterance("¡Hola! Vamos a jugar.");
+                intro.pitch = 1.2;
+                intro.rate = 0.9;
+                intro.lang = 'es-MX';
+                const v = getBestVoice();
+                if(v) intro.voice = v;
+                synth.speak(intro);
+                nextChallenge();
             };
 
             return (
                 <div className="min-h-screen flex items-center justify-center p-4">
                     {!hasInteracted ? (
-                        <button 
-                            onClick={startGame}
-                            className="bg-white p-12 rounded-[3rem] shadow-2xl border-b-8 border-indigo-200 flex flex-col items-center gap-6 hover:scale-105 transition-all"
-                        >
-                            <div className="bg-indigo-100 p-8 rounded-full">
-                                <Icon name="volume" size={64} className="text-indigo-600" />
-                            </div>
-                            <h1 className="text-4xl font-black text-indigo-800 tracking-tight">¡A JUGAR!</h1>
-                            <p className="text-slate-500 font-medium">Pulsa para empezar con sonido</p>
-                        </button>
+                        <div className="text-center bg-white p-10 rounded-[3rem] shadow-2xl border-b-8 border-indigo-200">
+                            <h1 className="text-4xl font-black text-indigo-800 mb-6">Juego de Mitades</h1>
+                            <button 
+                                onClick={startApp}
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-bold py-6 px-12 rounded-full transition-transform active:scale-95 shadow-lg"
+                            >
+                                ¡EMPEZAR!
+                            </button>
+                        </div>
                     ) : (
-                        <div className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border-b-[10px] border-slate-200">
-                            {/* Marcador */}
+                        <div className="w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border-b-[10px] border-slate-200">
                             <div className="bg-indigo-600 p-6 flex justify-between items-center text-white">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold opacity-70">ACIERTOS</span>
-                                    <span className="text-3xl font-black text-blue-200 leading-none">{score}</span>
+                                <div className="text-center">
+                                    <p className="text-[10px] font-bold opacity-70">ACIERTOS</p>
+                                    <p className="text-2xl font-black">{score}</p>
                                 </div>
-                                <div className="bg-rose-500 px-5 py-2 rounded-2xl border-b-4 border-rose-700 shadow-lg text-center">
-                                    <span className="block text-[10px] font-bold leading-none mb-1">ERRORES</span>
-                                    <span className="text-2xl font-black leading-none">{errors}</span>
+                                <div className="text-center">
+                                    <p className="text-[10px] font-bold opacity-70">ERRORES</p>
+                                    <p className="text-2xl font-black text-rose-300">{errors}</p>
                                 </div>
-                                <button 
-                                    onClick={() => speak("¿Están divididas en mitades iguales?")} 
-                                    className="p-3 bg-white/20 rounded-xl hover:bg-white/30 transition-colors"
-                                    aria-label="Repetir pregunta"
-                                >
-                                    <Icon name="volume" />
+                                <button onClick={() => speak("¿Están divididas en mitades iguales?")} className="p-2 bg-white/20 rounded-full">
+                                    🔊
                                 </button>
                             </div>
 
-                            <div className="p-8 text-center flex-1 flex flex-col items-center justify-center">
-                                <h2 className="text-2xl font-black text-slate-700 mb-8 uppercase tracking-tight leading-tight">
-                                    ¿Son mitades iguales?
-                                </h2>
-
-                                {/* Figura */}
-                                <div className="shape-container mb-12 animate-bounce-slow">
+                            <div className="p-8 flex flex-col items-center">
+                                <div className="mb-10 animate-bounce-slow">
                                     <svg width="200" height="200" viewBox="0 0 200 200">
-                                        {currentShape?.svg}
+                                        <g fill={currentShape?.bg} stroke={currentShape?.color} strokeWidth="4">
+                                            {currentShape?.path}
+                                            <g stroke={currentShape?.color} strokeWidth="3">
+                                                {currentShape?.line}
+                                            </g>
+                                        </g>
                                     </svg>
                                 </div>
 
-                                {/* Botones de Respuesta */}
-                                <div className="grid grid-cols-2 gap-6 w-full">
+                                <div className="grid grid-cols-2 gap-4 w-full">
                                     <button 
                                         onClick={() => handleAnswer(true)}
-                                        className={`py-6 rounded-3xl text-2xl font-black shadow-lg transition-all active:translate-y-1 flex flex-col items-center gap-2 ${
-                                            status === 'correct' && currentShape.isEqual ? 'bg-green-500 text-white shadow-green-200' : 
-                                            status === 'wrong' && !currentShape.isEqual ? 'bg-rose-500 text-white shadow-rose-200' :
-                                            'bg-blue-100 text-blue-700 border-b-8 border-blue-300 hover:bg-blue-200'
-                                        }`}
+                                        className="bg-emerald-100 text-emerald-700 py-6 rounded-3xl text-2xl font-black border-b-8 border-emerald-300 active:translate-y-1 transition-all"
                                     >
-                                        <Icon name="check" size={36} />
-                                        <span>SÍ</span>
+                                        SÍ
                                     </button>
-
                                     <button 
                                         onClick={() => handleAnswer(false)}
-                                        className={`py-6 rounded-3xl text-2xl font-black shadow-lg transition-all active:translate-y-1 flex flex-col items-center gap-2 ${
-                                            status === 'correct' && !currentShape.isEqual ? 'bg-green-500 text-white shadow-green-200' : 
-                                            status === 'wrong' && currentShape.isEqual ? 'bg-rose-500 text-white shadow-rose-200' :
-                                            'bg-rose-100 text-rose-700 border-b-8 border-rose-300 hover:bg-rose-200'
-                                        }`}
+                                        className="bg-rose-100 text-rose-700 py-6 rounded-3xl text-2xl font-black border-b-8 border-rose-300 active:translate-y-1 transition-all"
                                     >
-                                        <Icon name="x" size={36} />
-                                        <span>NO</span>
+                                        NO
                                     </button>
                                 </div>
-
-                                {/* Feedback status */}
-                                <div className="mt-8 h-8 font-black text-xl uppercase tracking-widest flex items-center justify-center">
-                                    {status === 'correct' && <span className="text-green-500 animate-bounce">¡Muy bien!</span>}
-                                    {status === 'wrong' && <span className="text-rose-500 animate-pulse">Intenta otra vez</span>}
+                                
+                                <div className="mt-8 h-8 font-black text-lg text-indigo-600">
+                                    {status === 'correct' && "¡GENIAL!"}
+                                    {status === 'wrong' && "MIRA BIEN..."}
                                 </div>
                             </div>
                         </div>
