@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Fracciones - Voz iOS</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pop { 0% { transform: scale(0.9); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .animate-pop { animation: pop 0.4s ease-out; }
+        body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    </style>
+</head>
+<body class="bg-sky-50 font-sans overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        const App = () => {
+            const [gameState, setGameState] = useState('welcome');
+            const [currentShape, setCurrentShape] = useState(null);
+            const [score, setScore] = useState(0);
+            const [errors, setErrors] = useState(0);
+            const [feedback, setFeedback] = useState(null);
+            const [hasInteracted, setHasInteracted] = useState(false);
+            const [voices, setVoices] = useState([]);
+            
+            const synth = window.speechSynthesis;
+
+            // Gestión Asíncrona de Voces para Safari/iOS
+            useEffect(() => {
+                const loadVoices = () => {
+                    const availableVoices = synth.getVoices();
+                    setVoices(availableVoices);
+                };
+
+                loadVoices();
+                if (synth.onvoiceschanged !== undefined) {
+                    synth.onvoiceschanged = loadVoices;
+                }
+            }, []);
+
+            const getOptimizedVoice = useCallback(() => {
+                const availableVoices = synth.getVoices();
+                
+                // Prioridad 1: Voces específicas femeninas/infantiles en español
+                const priorityVoice = availableVoices.find(v => 
+                    v.lang.startsWith('es') && 
+                    /(sofía|sandra|niña|female|femenina|paulina|mónica)/i.test(v.name)
+                );
+
+                if (priorityVoice) return priorityVoice;
+
+                // Prioridad 2: es-MX por defecto
+                const mxVoice = availableVoices.find(v => v.lang === 'es-MX');
+                if (mxVoice) return mxVoice;
+
+                // Prioridad 3: Cualquier voz en español
+                return availableVoices.find(v => v.lang.startsWith('es'));
+            }, [synth]);
+
+            const speak = (text) => {
+                if (!synth || !hasInteracted) return;
+                
+                // Cancelar cualquier locución previa
+                synth.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                const selectedVoice = getOptimizedVoice();
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+
+                // Parámetros estrictos solicitados
+                utterance.rate = 0.9;   // Ligeramente más lenta
+                utterance.pitch = 1.2;  // Tono más agudo/infantil
+                utterance.volume = 1.0;
+
+                synth.speak(utterance);
+            };
+
+            const generateChallenge = useCallback(() => {
+                const types = ['circle', 'square', 'rectangle'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const parts = Math.floor(Math.random() * 4) + 2; // 2 a 5 partes
+                const isEqual = Math.random() > 0.5;
+                
+                setCurrentShape({ type, parts, isEqual });
+                setFeedback(null);
+                
+                // Pequeño retraso para que el niño vea el cambio antes de escuchar
+                setTimeout(() => speak("¿Están divididas en partes iguales?"), 500);
+            }, [hasInteracted]);
+
+            const renderShape = () => {
+                if (!currentShape) return null;
+                const { type, parts, isEqual } = currentShape;
+                const size = 220;
+                const center = size / 2;
+                const elements = [];
+                const color = "#334155"; 
+                const shapeFill = "#ffffff";
+
+                if (type === 'circle') {
+                    const radius = 90;
+                    elements.push(<circle key="c" cx={center} cy={center} r={radius} fill={shapeFill} stroke={color} strokeWidth="6" />);
+                    
+                    const step = 360 / parts;
+                    for(let i = 0; i < parts; i++) {
+                        let angle = i * step;
+                        // Desigualdad notable para iOS/Safari
+                        if (!isEqual && i === 1) {
+                            angle += (step * 0.45); 
+                        }
+                        const rad = (angle - 90) * (Math.PI / 180);
+                        const x2 = center + radius * Math.cos(rad);
+                        const y2 = center + radius * Math.sin(rad);
+                        elements.push(<line key={i} x1={center} y1={center} x2={x2} y2={y2} stroke={color} strokeWidth="5" strokeLinecap="round" />);
+                    }
+                } else {
+                    const width = type === 'square' ? 160 : 200;
+                    const height = 150;
+                    const xStart = center - width / 2;
+                    const yStart = center - height / 2;
+                    
+                    elements.push(<rect key="r" x={xStart} y={yStart} width={width} height={height} fill={shapeFill} stroke={color} strokeWidth="6" />);
+                    
+                    const step = width / parts;
+                    for (let i = 1; i < parts; i++) {
+                        let xPos = xStart + (i * step);
+                        // Desigualdad notable
+                        if (!isEqual && i === 1) {
+                            xPos -= (step * 0.6); 
+                        }
+                        elements.push(<line key={i} x1={xPos} y1={yStart} x2={xPos} y2={yStart + height} stroke={color} strokeWidth="5" strokeLinecap="round" />);
+                    }
+                }
+
+                return (
+                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="animate-pop">
+                        {elements}
+                    </svg>
+                );
+            };
+
+            const handleAnswer = (userSaidEqual) => {
+                if (feedback) return;
+
+                if (userSaidEqual === currentShape.isEqual) {
+                    setFeedback('correct');
+                    setScore(s => s + 1);
+                    speak("¡Correcto! ¡Qué inteligente!");
+                } else {
+                    setFeedback('wrong');
+                    setErrors(e => e + 1);
+                    speak("Oh oh, fíjate bien, no son iguales.");
+                }
+
+                setTimeout(generateChallenge, 2500);
+            };
+
+            const startApp = () => {
+                setHasInteracted(true);
+                setGameState('playing');
+                // Primera locución tras interacción del usuario (requisito Safari)
+                setTimeout(() => {
+                    speak("¡Hola! Vamos a jugar. ¿Están divididas en partes iguales?");
+                    generateChallenge();
+                }, 100);
+            };
+
+            return (
+                <div className="h-screen w-full flex flex-col items-center justify-center p-4">
+                    {gameState === 'welcome' ? (
+                        <div className="text-center bg-white p-10 rounded-[3rem] shadow-2xl border-b-8 border-sky-300 max-w-sm">
+                            <h1 className="text-4xl font-black text-sky-600 mb-6">Partes Iguales</h1>
+                            <p className="text-xl text-slate-500 mb-8 font-medium italic">Toca el botón para jugar</p>
+                            <button 
+                                onClick={startApp}
+                                className="bg-sky-500 hover:bg-sky-400 text-white text-3xl font-black py-6 px-12 rounded-full shadow-lg transform active:scale-95 transition-all w-full"
+                            >
+                                ¡LISTO!
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="w-full max-w-md flex flex-col gap-4">
+                            <div className="flex gap-4">
+                                <div className="flex-1 bg-emerald-500 p-4 rounded-3xl text-white text-center shadow-lg">
+                                    <div className="text-xs uppercase font-bold opacity-80">Bien</div>
+                                    <div className="text-3xl font-black">{score}</div>
+                                </div>
+                                <div className="flex-1 bg-rose-500 p-4 rounded-3xl text-white text-center shadow-lg">
+                                    <div className="text-xs uppercase font-bold opacity-80">Errores</div>
+                                    <div className="text-3xl font-black">{errors}</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-[3rem] shadow-xl p-8 flex flex-col items-center border-b-8 border-slate-200">
+                                <div className="mb-6 h-64 flex items-center justify-center">
+                                    {renderShape()}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 w-full">
+                                    <button 
+                                        onClick={() => handleAnswer(true)}
+                                        className={`py-8 rounded-3xl text-3xl font-black transition-all active:scale-95
+                                            ${feedback === 'correct' && currentShape.isEqual ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                                    >
+                                        SÍ
+                                    </button>
+                                    <button 
+                                        onClick={() => handleAnswer(false)}
+                                        className={`py-8 rounded-3xl text-3xl font-black transition-all active:scale-95
+                                            ${feedback === 'correct' && !currentShape.isEqual ? 'bg-emerald-500 text-white' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}`}
+                                    >
+                                        NO
+                                    </button>
+                                </div>
+
+                                <div className="h-12 mt-6 flex items-center justify-center">
+                                    {feedback === 'correct' && <span className="text-2xl font-black text-emerald-500 animate-bounce">¡EXCELENTE! ⭐</span>}
+                                    {feedback === 'wrong' && <span className="text-2xl font-black text-rose-500">¡CASI! 🔍</span>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
