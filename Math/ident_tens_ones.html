@@ -1,221 +1,256 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Volume2, Star, CheckCircle2, AlertCircle, RefreshCcw, Trophy } from 'lucide-react';
-
-const App = () => {
-  const [currentNumber, setCurrentNumber] = useState(0);
-  const [tens, setTens] = useState('');
-  const [units, setUnits] = useState('');
-  const [level, setLevel] = useState(1);
-  const [score, setScore] = useState(0);
-  const [status, setStatus] = useState('idle'); // idle, correct, wrong, finished
-  const [selectedVoice, setSelectedVoice] = useState(null);
-  const [hasInteracted, setHasInteracted] = useState(false);
-  
-  const TOTAL_LEVELS = 22;
-  const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
-
-  // --- Configuración de Voz Estricta para iOS ---
-  const initSpeech = useCallback(() => {
-    if (!synth) return;
-    
-    const voices = synth.getVoices();
-    const preferredKeywords = ['sofia', 'sandra', 'niña', 'femenina', 'female', 'monica', 'paulina'];
-    
-    // 1. Filtrar voces en español
-    const spanishVoices = voices.filter(v => v.lang.startsWith('es'));
-    
-    // 2. Buscar por nombres específicos o palabras clave femeninas
-    let voice = spanishVoices.find(v => 
-      preferredKeywords.some(key => v.name.toLowerCase().includes(key))
-    );
-
-    // 3. Fallback a es-MX como solicitaste si no hay match específico
-    if (!voice) {
-      voice = spanishVoices.find(v => v.lang === 'es-MX') || 
-              spanishVoices.find(v => v.lang.includes('MX')) ||
-              spanishVoices[0];
-    }
-
-    setSelectedVoice(voice);
-  }, [synth]);
-
-  useEffect(() => {
-    initSpeech();
-    if (synth && synth.onvoiceschanged !== undefined) {
-      synth.onvoiceschanged = initSpeech;
-    }
-    generateExercise();
-  }, [initSpeech]);
-
-  const speak = (text) => {
-    if (!synth || !selectedVoice) return;
-    
-    // Cancelar cualquier locución previa (importante en iOS)
-    synth.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = selectedVoice;
-    utterance.lang = selectedVoice.lang;
-    
-    // Parámetros de optimización solicitados
-    utterance.rate = 0.9;   // Ligeramente más lenta
-    utterance.pitch = 1.2;  // Tono agudo/infantil
-    
-    synth.speak(utterance);
-  };
-
-  const generateExercise = () => {
-    const num = Math.floor(Math.random() * 90) + 10;
-    setCurrentNumber(num);
-    setTens('');
-    setUnits('');
-    setStatus('idle');
-  };
-
-  const handleStartGame = () => {
-    setHasInteracted(true);
-    speak(`¡Hola! Vamos a jugar. El número es el ${currentNumber}. ¿Cuántas decenas y unidades tiene?`);
-  };
-
-  const checkAnswer = () => {
-    const correctTens = Math.floor(currentNumber / 10);
-    const correctUnits = currentNumber % 10;
-
-    if (parseInt(tens) === correctTens && parseInt(units) === correctUnits) {
-      setStatus('correct');
-      setScore(s => s + 1);
-      speak(`¡Excelente! El número ${currentNumber} tiene ${correctTens} decenas y ${correctUnits} unidades.`);
-      
-      setTimeout(() => {
-        if (level < TOTAL_LEVELS) {
-          setLevel(l => l + 1);
-          generateExercise();
-        } else {
-          setStatus('finished');
-          speak("¡Felicidades! Has completado todos los ejercicios.");
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Valor Posicional</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
-      }, 2500);
-    } else {
-      setStatus('wrong');
-      speak("Esa no es la respuesta correcta. Inténtalo de nuevo, tú puedes.");
-    }
-  };
+        .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-sky-50 font-sans">
+    <div id="root"></div>
 
-  if (status === 'finished') {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-orange-100 flex items-center justify-center p-6">
-        <div className="bg-white rounded-[3rem] shadow-2xl p-10 max-w-sm w-full text-center border-b-8 border-orange-200">
-          <Trophy className="w-24 h-24 text-yellow-400 mx-auto mb-4 animate-bounce" />
-          <h1 className="text-4xl font-black text-orange-600 mb-2">¡GENIAL!</h1>
-          <p className="text-xl text-slate-600 font-bold mb-8">Completaste los {TOTAL_LEVELS} ejercicios.</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-5 rounded-2xl shadow-lg transition-transform active:scale-95"
-          >
-            VOLVER A JUGAR
-          </button>
-        </div>
-      </div>
-    );
-  }
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
 
-  return (
-    <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center p-4 font-sans selection:bg-sky-200">
-      {!hasInteracted ? (
-        <button 
-          onClick={handleStartGame}
-          className="bg-white p-10 rounded-[3rem] shadow-xl border-b-8 border-sky-200 flex flex-col items-center gap-4 group"
-        >
-          <div className="w-24 h-24 bg-sky-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Volume2 className="w-12 h-12 text-sky-500" />
-          </div>
-          <span className="text-2xl font-black text-sky-700">TOCA PARA EMPEZAR</span>
-        </button>
-      ) : (
-        <div className="w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden border-b-8 border-slate-200">
-          {/* Header */}
-          <div className="bg-sky-500 p-6 text-white flex justify-between items-center">
-            <div className="bg-sky-600/50 px-4 py-1 rounded-full text-sm font-bold">
-              Nivel {level} / {TOTAL_LEVELS}
-            </div>
-            <button onClick={() => speak(`El número es el ${currentNumber}`)} className="p-2 bg-white/20 rounded-full">
-              <Volume2 size={24} />
-            </button>
-          </div>
+        // Componente de Icono corregido para Lucide CDN
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconRef = useRef(null);
 
-          <div className="p-8 text-center">
-            <div className="mb-8 relative inline-block">
-              <div className="w-36 h-36 bg-amber-50 rounded-[2.5rem] border-4 border-amber-300 flex items-center justify-center shadow-inner">
-                <span className="text-7xl font-black text-amber-600">{currentNumber}</span>
-              </div>
-              <div className="absolute -top-3 -right-3 bg-white shadow-md rounded-full p-2">
-                <Star className="text-yellow-400 fill-yellow-400" size={24} />
-              </div>
-            </div>
+            useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    // Limpiar contenido previo
+                    iconRef.current.innerHTML = '';
+                    // Crear el elemento i con el atributo data-lucide
+                    const i = document.createElement('i');
+                    i.setAttribute('data-lucide', name.toLowerCase());
+                    if (className) i.className = className;
+                    i.style.width = `${size}px`;
+                    i.style.height = `${size}px`;
+                    i.style.display = 'inline-block';
+                    iconRef.current.appendChild(i);
+                    
+                    // Ejecutar la creación de iconos de lucide
+                    window.lucide.createIcons({
+                        attrs: {
+                            strokeWidth: 2,
+                            width: size,
+                            height: size
+                        }
+                    });
+                }
+            }, [name, size, className]);
 
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              <div className="space-y-3">
-                <label className="text-red-500 font-black text-lg uppercase tracking-tighter">Decenas</label>
-                <input 
-                  type="number"
-                  inputMode="numeric"
-                  value={tens}
-                  onChange={(e) => setTens(e.target.value)}
-                  className="w-full text-5xl font-black text-center py-5 rounded-3xl border-4 border-red-100 bg-red-50 text-red-600 focus:border-red-400 focus:outline-none transition-all"
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-3">
-                <label className="text-blue-500 font-black text-lg uppercase tracking-tighter">Unidades</label>
-                <input 
-                  type="number"
-                  inputMode="numeric"
-                  value={units}
-                  onChange={(e) => setUnits(e.target.value)}
-                  className="w-full text-5xl font-black text-center py-5 rounded-3xl border-4 border-blue-100 bg-blue-50 text-blue-600 focus:border-blue-400 focus:outline-none transition-all"
-                  placeholder="0"
-                />
-              </div>
-            </div>
+            return <span ref={iconRef} className="inline-flex items-center justify-center" />;
+        };
 
-            <div className="h-10 mb-6 flex items-center justify-center">
-              {status === 'correct' && (
-                <div className="flex items-center gap-2 text-green-500 font-bold animate-bounce">
-                  <CheckCircle2 /> ¡Excelente trabajo!
+        const App = () => {
+            const [currentNumber, setCurrentNumber] = useState(0);
+            const [tens, setTens] = useState('');
+            const [units, setUnits] = useState('');
+            const [level, setLevel] = useState(1);
+            const [score, setScore] = useState(0);
+            const [status, setStatus] = useState('idle');
+            const [selectedVoice, setSelectedVoice] = useState(null);
+            const [hasInteracted, setHasInteracted] = useState(false);
+            
+            const TOTAL_LEVELS = 22;
+            const synth = window.speechSynthesis;
+
+            const initSpeech = useCallback(() => {
+                if (!synth) return;
+                const voices = synth.getVoices();
+                const preferredKeywords = ['sofia', 'sandra', 'niña', 'femenina', 'female', 'monica', 'paulina', 'google español'];
+                const spanishVoices = voices.filter(v => v.lang.startsWith('es'));
+                
+                let voice = spanishVoices.find(v => 
+                    preferredKeywords.some(key => v.name.toLowerCase().includes(key))
+                );
+
+                if (!voice) {
+                    voice = spanishVoices.find(v => v.lang === 'es-MX') || 
+                            spanishVoices.find(v => v.lang.includes('MX')) ||
+                            spanishVoices[0];
+                }
+                setSelectedVoice(voice);
+            }, [synth]);
+
+            useEffect(() => {
+                initSpeech();
+                if (synth && synth.onvoiceschanged !== undefined) {
+                    synth.onvoiceschanged = initSpeech;
+                }
+                generateExercise();
+            }, [initSpeech]);
+
+            const speak = (text) => {
+                if (!synth || !selectedVoice) return;
+                synth.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.voice = selectedVoice;
+                utterance.rate = 0.9;
+                utterance.pitch = 1.2;
+                synth.speak(utterance);
+            };
+
+            const generateExercise = () => {
+                const num = Math.floor(Math.random() * 90) + 10;
+                setCurrentNumber(num);
+                setTens('');
+                setUnits('');
+                setStatus('idle');
+            };
+
+            const handleStartGame = () => {
+                setHasInteracted(true);
+                speak(`¡Hola! Vamos a jugar. El número es el ${currentNumber}. ¿Cuántas decenas y unidades tiene?`);
+            };
+
+            const checkAnswer = () => {
+                const correctTens = Math.floor(currentNumber / 10);
+                const correctUnits = currentNumber % 10;
+
+                if (parseInt(tens) === correctTens && parseInt(units) === correctUnits) {
+                    setStatus('correct');
+                    setScore(s => s + 1);
+                    speak(`¡Excelente! El número ${currentNumber} tiene ${correctTens} decenas y ${correctUnits} unidades.`);
+                    
+                    setTimeout(() => {
+                        if (level < TOTAL_LEVELS) {
+                            setLevel(l => l + 1);
+                            generateExercise();
+                        } else {
+                            setStatus('finished');
+                            speak("¡Felicidades! Has completado todos los ejercicios.");
+                        }
+                    }, 2500);
+                } else {
+                    setStatus('wrong');
+                    speak("Esa no es la respuesta correcta. Inténtalo de nuevo.");
+                }
+            };
+
+            if (status === 'finished') {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <div className="bg-white rounded-[3rem] shadow-2xl p-10 max-w-sm w-full text-center border-b-8 border-orange-200">
+                            <Icon name="Trophy" size={80} className="text-yellow-400 mx-auto mb-4" />
+                            <h1 className="text-4xl font-black text-orange-600 mb-2">¡GENIAL!</h1>
+                            <p className="text-xl text-slate-600 font-bold mb-8">Completaste los {TOTAL_LEVELS} niveles.</p>
+                            <button 
+                                onClick={() => window.location.reload()}
+                                className="w-full bg-orange-500 text-white font-black py-5 rounded-2xl shadow-lg active:scale-95"
+                            >
+                                VOLVER A JUGAR
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                    {!hasInteracted ? (
+                        <button 
+                            onClick={handleStartGame}
+                            className="bg-white p-10 rounded-[3rem] shadow-xl border-b-8 border-sky-200 flex flex-col items-center gap-4 group"
+                        >
+                            <div className="w-24 h-24 bg-sky-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Icon name="Volume2" size={48} className="text-sky-500" />
+                            </div>
+                            <span className="text-2xl font-black text-sky-700 uppercase tracking-tighter">Tocar para empezar</span>
+                        </button>
+                    ) : (
+                        <div className="w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden border-b-8 border-slate-200">
+                            <div className="bg-sky-500 p-6 text-white flex justify-between items-center">
+                                <span className="font-bold">Nivel {level} / {TOTAL_LEVELS}</span>
+                                <button onClick={() => speak(`El número es el ${currentNumber}`)} className="p-2 bg-white/20 rounded-full active:bg-white/40">
+                                    <Icon name="Volume2" size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 text-center">
+                                <div className="mb-8 relative inline-block">
+                                    <div className="w-36 h-36 bg-amber-50 rounded-[2.5rem] border-4 border-amber-300 flex items-center justify-center shadow-inner">
+                                        <span className="text-7xl font-black text-amber-600">{currentNumber}</span>
+                                    </div>
+                                    <div className="absolute -top-3 -right-3 bg-white shadow-md rounded-full p-2">
+                                        <Icon name="Star" size={24} className="text-yellow-400" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6 mb-8">
+                                    <div className="space-y-3">
+                                        <label className="text-red-500 font-black text-lg uppercase">Decenas</label>
+                                        <input 
+                                            type="number"
+                                            inputMode="numeric"
+                                            value={tens}
+                                            onChange={(e) => setTens(e.target.value)}
+                                            className="w-full text-5xl font-black text-center py-5 rounded-3xl border-4 border-red-100 bg-red-50 text-red-600 focus:border-red-400 focus:outline-none"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-blue-500 font-black text-lg uppercase">Unidades</label>
+                                        <input 
+                                            type="number"
+                                            inputMode="numeric"
+                                            value={units}
+                                            onChange={(e) => setUnits(e.target.value)}
+                                            className="w-full text-5xl font-black text-center py-5 rounded-3xl border-4 border-blue-100 bg-blue-50 text-blue-600 focus:border-blue-400 focus:outline-none"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="h-10 mb-6 flex items-center justify-center">
+                                    {status === 'correct' && (
+                                        <div className="flex items-center gap-2 text-green-500 font-bold">
+                                            <Icon name="CheckCircle2" /> ¡Excelente!
+                                        </div>
+                                    )}
+                                    {status === 'wrong' && (
+                                        <div className="flex items-center gap-2 text-red-500 font-bold animate-shake">
+                                            <Icon name="AlertCircle" /> Inténtalo de nuevo
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button 
+                                    onClick={checkAnswer}
+                                    disabled={!tens || !units}
+                                    className={`w-full py-6 rounded-3xl text-2xl font-black shadow-lg transition-all active:scale-95 ${
+                                        !tens || !units ? 'bg-slate-100 text-slate-400' : 'bg-green-500 text-white'
+                                    }`}
+                                >
+                                    ¡COMPROBAR!
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-              )}
-              {status === 'wrong' && (
-                <div className="flex items-center gap-2 text-red-500 font-bold animate-shake">
-                  <AlertCircle /> Casi... ¡Inténtalo de nuevo!
-                </div>
-              )}
-            </div>
+            );
+        };
 
-            <button 
-              onClick={checkAnswer}
-              disabled={!tens || !units}
-              className={`w-full py-6 rounded-3xl text-2xl font-black shadow-lg transition-all transform active:scale-95 ${
-                !tens || !units 
-                  ? 'bg-slate-100 text-slate-400' 
-                  : 'bg-green-500 text-white hover:bg-green-600'
-              }`}
-            >
-              ¡COMPROBAR!
-            </button>
-          </div>
-          
-          <div className="bg-slate-50 p-4 flex justify-center gap-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-100">
-            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-red-400 rounded-full" /> Decenas</div>
-            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-blue-400 rounded-full" /> Unidades</div>
-          </div>
-        </div>
-      )}
-      
-      <p className="mt-8 text-slate-400 text-xs font-medium text-center max-w-xs">
-        Optimizado para iPad. Voz: {selectedVoice?.name || 'Cargando...'}
-      </p>
-    </div>
-  );
-};
-
-export default App;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
