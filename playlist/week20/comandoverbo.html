@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Comandos Divertidos!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #fdf2f8; /* Un tono rosado muy suave */
+            color: #334155;
+        }
+
+        .command-card {
+            transition: all 0.2s;
+            border-radius: 15px;
+            border-left: 8px solid #f472b6;
+        }
+
+        .command-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .instruction-box {
+            background-color: #ffffff;
+            border: 3px dashed #f472b6;
+            border-radius: 20px;
+        }
+
+        .btn-audio {
+            background-color: #fdf2f8;
+            border: 2px solid #fbcfe8;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .btn-audio:active {
+            transform: scale(0.9);
+            background-color: #fbcfe8;
+        }
+
+        .number-badge {
+            background-color: #f472b6;
+            color: white;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-2xl mx-auto p-4 mb-20">
+        <!-- Encabezado -->
+        <header class="text-center my-8">
+            <h1 class="text-4xl font-bold text-pink-600 mb-2">🏃‍♀️ ¡A Mover el Cuerpo! 🏃‍♂️</h1>
+            
+            <!-- Instrucciones Generales con Voz -->
+            <div class="instruction-box p-6 mt-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="text-left">
+                    <p class="text-xl font-bold text-pink-700">Instrucciones:</p>
+                    <p class="text-lg text-slate-600">
+                        Ponte de pie, oprime la bocina, repite lo que dice en español y en inglés y luego tú hazlo.
+                    </p>
+                </div>
+                <button class="btn-audio bg-pink-50 border-pink-200" onclick="speak('Ponte de pie, oprime la bocina, repite lo que dice en español y en inglés y luego tú hazlo', 'es-MX')">
+                    <span class="text-2xl">📢</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Lista de Comandos -->
+        <div id="lista-comandos" class="space-y-4">
+            <!-- Los 50 comandos se cargarán aquí -->
+        </div>
+    </div>
+
+    <script>
+        const comandos = [
+            { es: "Brinca a la derecha", en: "Jump to the right", icon: "➡️" },
+            { es: "Brinca a la izquierda", en: "Jump to the left", icon: "⬅️" },
+            { es: "Toca tus rodillas", en: "Touch your knees", icon: "🦵" },
+            { es: "Manos arriba", en: "Hands up", icon: "🙌" },
+            { es: "Toca tu nariz", en: "Touch your nose", icon: "👃" },
+            { es: "Gira en círculos", en: "Spin in circles", icon: "💫" },
+            { es: "Salta como rana", en: "Jump like a frog", icon: "🐸" },
+            { es: "Camina muy lento", en: "Walk very slowly", icon: "🐢" },
+            { es: "Corre en tu lugar", en: "Run in place", icon: "🏃" },
+            { es: "Toca tus pies", en: "Touch your toes", icon: "🦶" },
+            { es: "Aplaude tres veces", en: "Clap three times", icon: "👏" },
+            { es: "Cierra los ojos", en: "Close your eyes", icon: "😌" },
+            { es: "Abre los brazos", en: "Open your arms", icon: "👐" },
+            { es: "Mueve los hombros", en: "Move your shoulders", icon: "💪" },
+            { es: "Haz una cara graciosa", en: "Make a funny face", icon: "😜" },
+            { es: "Siéntate en el piso", en: "Sit on the floor", icon: "🧘" },
+            { es: "Ponte de pie", en: "Stand up", icon: "🧍" },
+            { es: "Baila un poquito", en: "Dance a little", icon: "💃" },
+            { es: "Toca tus orejas", en: "Touch your ears", icon: "👂" },
+            { es: "Mueve la cabeza", en: "Move your head", icon: "🙋" },
+            { es: "Lanza un beso", en: "Blow a kiss", icon: "😘" },
+            { es: "Haz como un gatito", en: "Act like a kitty", icon: "🐱" },
+            { es: "Estírate hacia el sol", en: "Stretch to the sun", icon: "🙆" },
+            { es: "Toca algo azul", en: "Touch something blue", icon: "🔵" },
+            { es: "Cuenta hasta cinco", en: "Count to five", icon: "✋" },
+            { es: "Vuela como pájaro", en: "Fly like a bird", icon: "🐦" },
+            { es: "Cruza los brazos", en: "Fold your arms", icon: "🙅" },
+            { es: "Mira hacia arriba", en: "Look up", icon: "☝️" },
+            { es: "Mira hacia abajo", en: "Look down", icon: "👇" },
+            { es: "Regala una sonrisa", en: "Give a smile", icon: "😊" },
+            { es: "Ruge como león", en: "Roar like a lion", icon: "🦁" },
+            { es: "Camina de puntitas", en: "Walk on your tiptoes", icon: "🩰" },
+            { es: "Toca tus codos", en: "Touch your elbows", icon: "📐" },
+            { es: "Haz como un mono", en: "Act like a monkey", icon: "🐒" },
+            { es: "Da un paso atrás", en: "Take a step back", icon: "🔙" },
+            { es: "Da un paso al frente", en: "Take a step forward", icon: "🔝" },
+            { es: "Toca tu cintura", en: "Touch your waist", icon: "💃" },
+            { es: "Haz como un elefante", en: "Act like an elephant", icon: "🐘" },
+            { es: "Bosteza muy grande", en: "Yawn very big", icon: "🥱" },
+            { es: "Ráscate la cabeza", en: "Scratch your head", icon: "🤯" },
+            { es: "Salta en un pie", en: "Hop on one foot", icon: "🦩" },
+            { es: "Toca algo rojo", en: "Touch something red", icon: "🔴" },
+            { es: "Haz como un perro", en: "Act like a dog", icon: "🐶" },
+            { es: "Dime adiós", en: "Wave goodbye", icon: "👋" },
+            { es: "Toca tu frente", en: "Touch your forehead", icon: "👧" },
+            { es: "Infla tus mejillas", en: "Puff your cheeks", icon: "🐡" },
+            { es: "Nademos un poco", en: "Let's swim a bit", icon: "🏊" },
+            { es: "Haz como un robot", en: "Act like a robot", icon: "🤖" },
+            { es: "Mueve los dedos", en: "Wiggle your fingers", icon: "👐" },
+            { es: "¡Dame un abrazo!", en: "Give me a hug!", icon: "🫂" }
+        ];
+
+        let voices = [];
+        function loadVoices() {
+            voices = window.speechSynthesis.getVoices();
+        }
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+
+        function speak(text, lang) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.rate = 0.85; 
+            utterance.pitch = 1.3; 
+
+            if (lang.startsWith('es')) {
+                const targetVoice = voices.find(v => 
+                    v.lang.includes('es') && 
+                    (v.name.includes('Sofia') || v.name.includes('Sandra') || v.name.includes('Niña') || v.name.includes('Femenina'))
+                ) || voices.find(v => v.lang.includes('es-MX'));
+                if (targetVoice) utterance.voice = targetVoice;
+            }
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakDual(es, en) {
+            window.speechSynthesis.cancel();
+            speak(es, 'es-MX');
+            setTimeout(() => {
+                speak(en, 'en-US');
+            }, 2500);
+        }
+
+        const container = document.getElementById('lista-comandos');
+        comandos.forEach((cmd, index) => {
+            const div = document.createElement('div');
+            div.className = "command-card bg-white p-4 flex items-center shadow-sm border border-slate-100";
+            div.innerHTML = `
+                <div class="mr-4">
+                    <div class="number-badge">${index + 1}</div>
+                </div>
+                <div class="text-3xl mr-4">${cmd.icon}</div>
+                <div class="flex-grow">
+                    <p class="text-xl font-bold text-slate-700">${cmd.es}</p>
+                    <p class="text-md text-pink-400 font-medium italic">${cmd.en}</p>
+                </div>
+                <button class="btn-audio ml-2" onclick="speakDual('${cmd.es.replace(/'/g, "\\'")}', '${cmd.en.replace(/'/g, "\\")}')">
+                    <span class="text-2xl">📢</span>
+                </button>
+            `;
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>
