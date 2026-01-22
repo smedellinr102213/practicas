@@ -51,17 +51,13 @@
             box-shadow: 0 4px 0 #b45309;
         }
 
-        .btn-speaker span {
-            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.1));
-        }
-
         input {
             border: 6px solid #94a3b8;
             border-radius: 25px;
             padding: 1.5rem; 
             outline: none;
             font-weight: 700;
-            font-size: 2.2rem; 
+            font-size: 2.5rem; 
             text-align: center;
             width: 100%;
             transition: all 0.3s;
@@ -141,12 +137,11 @@
 <body>
 
     <div class="mt-4 mb-6 text-center">
-        <h1 class="text-5xl font-black text-emerald-700 mb-2 drop-shadow-sm">🌈 El Gran Dictado Mágico 🦄</h1>
-        <p class="text-xl text-emerald-900 font-bold">¡Escribe nombres propios y comunes! ✨</p>
+        <h1 class="text-5xl font-black text-emerald-700 mb-2 drop-shadow-sm">🌈 Dictado Mágico 🦄</h1>
+        <p class="text-xl text-emerald-900 font-bold">¡Escucha y escribe! Mezcla de 100 frases ✨</p>
     </div>
 
     <div class="game-card">
-        <!-- Adornos visuales -->
         <span class="floating-emoji" style="top: -20px; left: -20px;">🎨</span>
         <span class="floating-emoji" style="top: -20px; right: -20px; animation-delay: 1s;">🧸</span>
         <span class="floating-emoji" style="bottom: -20px; left: -20px; animation-delay: 2s;">🎈</span>
@@ -166,34 +161,28 @@
                 <span class="text-3xl">⭐</span> <span>Usa <b>Mayúsculas</b>, <b>punto final</b> y presiona <b>Enter</b></span>
             </div>
 
-            <button class="btn-speaker" onclick="reproducirPalabra()" id="speaker-btn" title="Escuchar frase">
+            <button class="btn-speaker" onclick="reproducirPalabra()" id="speaker-btn">
                 <span class="text-8xl">📢</span>
             </button>
             
             <div id="status-msg" class="h-12 mb-4 font-black text-2xl"></div>
             
             <input type="text" id="word-input" placeholder="Escribe aquí..." autocomplete="off" onkeydown="siEsEnter(event)">
-            
-            <div class="mt-8">
-                <p class="text-slate-500 font-bold text-lg">Paso 1: ¡Escucha! 👂</p>
-                <p class="text-slate-500 font-bold text-lg">Paso 2: ¡Escribe y pulsa Enter! ⌨️</p>
-            </div>
         </div>
     </div>
 
     <div id="final-screen" class="hidden fixed inset-0 bg-emerald-50 z-50 flex flex-col items-center justify-center p-6 text-center">
         <h2 class="text-7xl mb-6 font-black text-emerald-600 animate-bounce">🎊 ¡ERES INCREÍBLE! 🎊</h2>
-        <p class="text-4xl mb-10 font-bold text-emerald-800">¡Terminaste todas las frases mágicas!</p>
         <div class="bg-white p-12 rounded-[50px] shadow-2xl border-8 border-emerald-400">
-            <p class="text-5xl font-black text-emerald-700">Total de errores: <span id="final-errors">0</span></p>
-            <p class="text-2xl mt-4 text-emerald-500 font-bold">¡Lo hiciste genial! 🏆</p>
+            <p class="text-5xl font-black text-emerald-700">Errores totales: <span id="final-errors">0</span></p>
         </div>
-        <button onclick="location.reload()" class="mt-12 bg-emerald-500 text-white px-12 py-6 rounded-full text-4xl font-black shadow-[0_12px_0_#059669] active:translate-y-2 active:shadow-none hover:bg-emerald-400 transition-all">¡Jugar de nuevo! 🔄</button>
+        <button onclick="location.reload()" class="mt-12 bg-emerald-500 text-white px-12 py-6 rounded-full text-4xl font-black shadow-lg hover:bg-emerald-400">¡Jugar de nuevo! 🔄</button>
     </div>
 
     <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
 
     <script>
+        // Lista de frases (sin tildes para simplificar o normalizadas en validación)
         const baseFrases = [
             "La rana salta", "Hoy vino Luis", "El perro corre", "Busca a Ana", "El gato come", 
             "Llama a Pepe", "La nina juega", "Mira a Marta", "El nino canta", "Canta con Juan",
@@ -220,66 +209,45 @@
         const frases = baseFrases.map(f => f + ".");
         let currentIndex = 0;
         let errors = 0;
-        let vozSeleccionada = null;
+        let vocesDisponibles = [];
 
-        function normalizar(texto) {
-            return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        }
-
-        // Lógica de optimización para iOS / Safari
+        // --- CÓDIGO EXTRAÍDO Y OPTIMIZADO PARA IPAD ---
         function cargarVoces() {
-            const voces = window.speechSynthesis.getVoices();
-            if (voces.length === 0) return;
-
-            // Prioridad 1: Voces específicas con nombres femeninos/infantiles en español
-            let vozEncontrada = voces.find(v => {
-                const nombre = v.name.toLowerCase();
-                const esEspañol = v.lang.startsWith('es');
-                return esEspañol && (
-                    nombre.includes('sofia') || 
-                    nombre.includes('sandra') || 
-                    nombre.includes('niña') || 
-                    nombre.includes('femenina') || 
-                    nombre.includes('female')
-                );
-            });
-
-            // Prioridad 2: Voz por defecto es-MX si no hay una específica de la lista
-            if (!vozEncontrada) {
-                vozEncontrada = voces.find(v => v.lang === 'es-MX');
-            }
-
-            // Prioridad 3: Cualquier voz en español
-            if (!vozEncontrada) {
-                vozEncontrada = voces.find(v => v.lang.startsWith('es'));
-            }
-
-            vozSeleccionada = vozEncontrada;
+            vocesDisponibles = window.speechSynthesis.getVoices();
         }
 
-        // Gestión asíncrona para Safari/iOS
-        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+        if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = cargarVoces;
         }
 
+        function configurarVoz(mensaje) {
+            mensaje.lang = 'es-MX';
+            mensaje.rate = 0.9;  // Velocidad óptima iOS
+            mensaje.pitch = 1.2; // Tono infantil/agudo
+
+            // Lógica de selección prioritaria para iPad
+            const vozPreferida = vocesDisponibles.find(v => 
+                (v.lang.includes('es')) && 
+                (v.name.includes('Sofia') || v.name.includes('Sandra') || 
+                 v.name.includes('Niña') || v.name.includes('Femenina') || 
+                 v.name.includes('Monica') || v.name.includes('Paulina'))
+            );
+
+            if (vozPreferida) {
+                mensaje.voice = vozPreferida;
+            }
+        }
+        // --- FIN CÓDIGO EXTRAÍDO ---
+
         function reproducirPalabra() {
             window.speechSynthesis.cancel();
-            
-            // Garantizar carga en Safari si aún no está lista
-            if (!vozSeleccionada) cargarVoces();
-
             const mensaje = new SpeechSynthesisUtterance(baseFrases[currentIndex]);
-            
-            if (vozSeleccionada) {
-                mensaje.voice = vozSeleccionada;
-            }
-
-            // Parámetros Maestros iOS
-            mensaje.lang = 'es-MX';
-            mensaje.rate = 0.9;  // Ligeramente más lenta
-            mensaje.pitch = 1.2; // Tono agudo infantil
-
+            configurarVoz(mensaje);
             window.speechSynthesis.speak(mensaje);
+        }
+
+        function normalizar(texto) {
+            return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         }
 
         function siEsEnter(event) {
@@ -293,11 +261,31 @@
             const valorEscrito = input.value.trim().replace(/\s+/g, ' '); 
             const fraseCorrecta = frases[currentIndex];
 
+            // Comparamos sin acentos para no penalizar
             if (normalizar(valorEscrito) === normalizar(fraseCorrecta)) {
-                marcarCorrecto();
+                // Pero validamos mayúsculas estrictamente si es nombre propio
+                if (validarMayusculas(valorEscrito, fraseCorrecta)) {
+                    marcarCorrecto();
+                } else {
+                    marcarIncorrecto("mayus");
+                }
             } else {
-                marcarIncorrecto(valorEscrito);
+                marcarIncorrecto("error");
             }
+        }
+
+        function validarMayusculas(escrito, correcta) {
+            const pEscrito = escrito.split(' ');
+            const pCorrecta = correcta.split(' ');
+            for (let i = 0; i < pCorrecta.length; i++) {
+                if (pCorrecta[i] && pEscrito[i]) {
+                    if (pCorrecta[i][0] === pCorrecta[i][0].toUpperCase() && 
+                        pEscrito[i][0] !== pEscrito[i][0].toUpperCase()) {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         function marcarCorrecto() {
@@ -313,53 +301,28 @@
                 currentIndex++;
                 if (currentIndex < frases.length) {
                     actualizarUI();
-                    setTimeout(() => {
-                        reproducirPalabra();
-                    }, 600);
+                    setTimeout(reproducirPalabra, 600);
                 } else {
                     mostrarPantallaFinal();
                 }
             }, 1200);
         }
 
-        function marcarIncorrecto(valor) {
+        function marcarIncorrecto(tipo) {
             const input = document.getElementById('word-input');
             const statusMsg = document.getElementById('status-msg');
-            const fraseCorrecta = frases[currentIndex];
             
             errors++;
             document.getElementById('error-count').innerText = errors;
             input.classList.add('input-incorrect');
             
-            if (valor.length === 0) {
-                statusMsg.innerHTML = "<span class='text-rose-500'>¡Escribe algo! ✏️</span>";
-            } else if (!valor.endsWith('.')) {
-                statusMsg.innerHTML = "<span class='text-rose-500'>Pon el punto final 📍</span>";
+            if (tipo === "mayus") {
+                statusMsg.innerHTML = "<span class='text-rose-500'>Revisa las MAYÚSCULAS 🏛️</span>";
             } else {
-                const palabrasEscritas = valor.split(' ');
-                const palabrasCorrectas = fraseCorrecta.split(' ');
-                let errorMayuscula = false;
-
-                for (let i = 0; i < palabrasCorrectas.length; i++) {
-                    if (palabrasEscritas[i]) {
-                        if (palabrasCorrectas[i][0] === palabrasCorrectas[i][0].toUpperCase() && 
-                            palabrasEscritas[i][0] !== palabrasEscritas[i][0].toUpperCase()) {
-                            errorMayuscula = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (errorMayuscula) {
-                    statusMsg.innerHTML = "<span class='text-rose-500'>Revisa las MAYÚSCULAS 🏛️</span>";
-                } else {
-                    statusMsg.innerHTML = "<span class='text-rose-500'>¡Sigue intentando! 🔄</span>";
-                }
+                statusMsg.innerHTML = "<span class='text-rose-500'>¡Casi! Intenta de nuevo 🔄</span>";
             }
 
-            setTimeout(() => {
-                input.classList.remove('input-incorrect');
-            }, 1500);
+            setTimeout(() => input.classList.remove('input-incorrect'), 1500);
         }
 
         function actualizarUI() {
