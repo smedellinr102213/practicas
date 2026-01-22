@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictado Mágico: El Gran Reto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #f0fdfa;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 30px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 4px solid #10b981;
+            max-width: 700px; 
+            width: 95%;
+            text-align: center;
+        }
+
+        .btn-speaker {
+            background-color: #d1fae5;
+            border: 4px solid #10b981;
+            border-radius: 50%;
+            width: 130px;
+            height: 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 8px 0 #047857;
+            margin: 0 auto 1.5rem;
+        }
+
+        .btn-speaker:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #047857;
+        }
+
+        input {
+            border: 5px solid #cbd5e1;
+            border-radius: 20px;
+            padding: 1.5rem; 
+            outline: none;
+            font-weight: 700;
+            font-size: 2.5rem; 
+            text-align: center;
+            width: 100%;
+            transition: all 0.3s;
+            margin-top: 15px;
+            color: #064e3b;
+        }
+
+        .input-correct {
+            border-color: #22c55e !important;
+            background-color: #f0fdf4 !important;
+            color: #15803d !important;
+            animation: bounce 0.5s;
+        }
+
+        .input-incorrect {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            color: #b91c1c !important;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .progress-bar {
+            height: 18px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #10b981;
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .instruction-badge {
+            background-color: #fffbeb;
+            border: 2px dashed #f59e0b;
+            padding: 12px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            color: #92400e;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mt-6 mb-6 text-center">
+        <h1 class="text-4xl font-bold text-emerald-700 mb-2">✍️ El Gran Dictado Pro</h1>
+        <p class="text-lg text-emerald-900 font-bold">Comunes y Propios mezclados ✨</p>
+    </div>
+
+    <div class="game-card">
+        <div class="flex justify-between mb-4">
+            <span class="bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full font-bold">Frase: <span id="current-word-num">1</span>/100</span>
+            <span class="bg-red-100 text-red-700 px-4 py-1 rounded-full font-bold">Errores: <span id="error-count">0</span> ❌</span>
+        </div>
+
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+        </div>
+
+        <div class="mt-8">
+            <div class="instruction-badge">
+                <span class="text-2xl mr-2">⭐</span> <span>Usa mayúsculas, punto final y presiona Enter</span>
+            </div>
+
+            <button class="btn-speaker" onclick="reproducirPalabra()" id="speaker-btn">
+                <span class="text-7xl">📢</span>
+            </button>
+            
+            <div id="status-msg" class="h-10 mb-2 font-bold text-xl"></div>
+            
+            <input type="text" id="word-input" placeholder="" autocomplete="off" onkeydown="siEsEnter(event)">
+            
+            <div class="mt-8">
+                <p class="text-slate-400 italic text-base">Escribe y pulsa Enter. ¡Escucha bien si hay nombres!</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="final-screen" class="hidden fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
+        <h2 class="text-6xl mb-4 font-bold text-emerald-600">🎉 ¡Reto Superado! 🎉</h2>
+        <p class="text-3xl mb-8">Has dominado los 100 dictados mezclados.</p>
+        <div class="bg-emerald-100 p-10 rounded-3xl shadow-xl">
+            <p class="text-4xl font-bold text-emerald-700">Total de errores: <span id="final-errors">0</span></p>
+        </div>
+        <button onclick="location.reload()" class="mt-12 bg-emerald-500 text-white px-10 py-5 rounded-full text-3xl font-bold shadow-lg hover:bg-emerald-600 transition">Jugar de nuevo 🔄</button>
+    </div>
+
+    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+
+    <script>
+        // Lista mezclada: 50 comunes y 50 con propios en distintas posiciones
+        const baseFrases = [
+            // Mezcla de 100 frases
+            "La rana salta", "Hoy vino Luis", "El perro corre", "Busca a Ana", "El gato come", 
+            "Llama a Pepe", "La niña juega", "Mira a Marta", "El niño canta", "Canta con Juan",
+            "La foca nada", "Viaja a España", "El pato vuela", "Visita México", "La mesa brilla", 
+            "Mira a París", "El lobo aúlla", "Roma es vieja", "La vaca muge", "Cruza Chile hoy",
+            "El pájaro pía", "Marte es rojo", "La luna sale", "Venus brilla mucho", "El sol quema", 
+            "Saturno tiene anillos", "La flor crece", "Júpiter es gigante", "El barco flota", "Plutón está lejos",
+            "La mamá ríe", "Hola soy Betito", "El papá lee", "Dora busca mapas", "La abuela teje", 
+            "Lucas corre rápido", "El coche para", "Mateo escribe bien", "La lluvia cae", "Elena pinta mucho",
+            "El oso duerme", "Toby ladra fuerte", "La abeja vuela", "Michi duerme aquí", "El conejo salta", 
+            "Pipo vuela alto", "La tortuga camina", "Coco come mucho", "El león ruge", "Bibi nada bien",
+            "La pelota bota", "Madrid es grande", "El tren pita", "Lima tiene sol", "La puerta abre", 
+            "Quito tiene nubes", "El gallo canta", "Bogotá está lejos", "La sopa quema", "Tokio tiene luces",
+            "La casa limpia", "Sara barre todo", "El viento sopla", "Raúl sube alto", "El pez nada", 
+            "Inés baja pronto", "La estrella brilla", "Tomás abre cajas", "El fuego arde", "Rosa tiene flores",
+            "El río pasa", "Bruno corre fuera", "La nube viaja", "Luna sale tarde", "El libro enseña", 
+            "Sol calienta mucho", "La radio suena", "Nube tapa sol", "El reloj marca", "Viento sopla hoy",
+            "La sopa sabe", "Carlos arregla esto", "El bebé llora", "Diana compra fruta", "La llave gira", 
+            "Mario gana siempre", "El zapato aprieta", "Lucía busca llaves", "La hormiga carga", "Óscar rompe algo",
+            "El tigre caza", "África tiene selvas", "La cebra corre", "Asia es inmensa", "El mono trepa", 
+            "Europa tiene nieve", "La vaca pasta", "América es grande", "El ratón escapa", "Oceanía tiene mar"
+        ];
+
+        const frases = baseFrases.map(f => f + ".");
+        let currentIndex = 0;
+        let errors = 0;
+        let vocesDisponibles = [];
+
+        function cargarVoces() {
+            vocesDisponibles = window.speechSynthesis.getVoices();
+        }
+
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = cargarVoces;
+        }
+
+        function configurarVoz(mensaje) {
+            mensaje.lang = 'es-MX';
+            mensaje.rate = 0.75; 
+            const voz = vocesDisponibles.find(v => v.lang.includes('es'));
+            if (voz) mensaje.voice = voz;
+        }
+
+        function reproducirPalabra() {
+            window.speechSynthesis.cancel();
+            const mensaje = new SpeechSynthesisUtterance(baseFrases[currentIndex]);
+            configurarVoz(mensaje);
+            window.speechSynthesis.speak(mensaje);
+        }
+
+        function siEsEnter(event) {
+            if (event.key === "Enter") {
+                validarEscritura();
+            }
+        }
+
+        function validarEscritura() {
+            const input = document.getElementById('word-input');
+            const valor = input.value.trim().replace(/\s+/g, ' '); 
+            const fraseCorrecta = frases[currentIndex];
+
+            if (valor === fraseCorrecta) {
+                marcarCorrecto();
+            } else {
+                marcarIncorrecto(valor);
+            }
+        }
+
+        function marcarCorrecto() {
+            const input = document.getElementById('word-input');
+            const statusMsg = document.getElementById('status-msg');
+            const successSound = document.getElementById('sound-success');
+
+            input.classList.add('input-correct');
+            statusMsg.innerHTML = "<span class='text-green-600'>¡Excelente! ✅</span>";
+            try { successSound.play(); } catch(e) {}
+
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex < frases.length) {
+                    actualizarUI();
+                    setTimeout(() => {
+                        reproducirPalabra();
+                    }, 500);
+                } else {
+                    mostrarPantallaFinal();
+                }
+            }, 1000);
+        }
+
+        function marcarIncorrecto(valor) {
+            const input = document.getElementById('word-input');
+            const statusMsg = document.getElementById('status-msg');
+            const fraseCorrecta = frases[currentIndex];
+            
+            errors++;
+            document.getElementById('error-count').innerText = errors;
+            input.classList.add('input-incorrect');
+            
+            if (valor.length === 0) {
+                statusMsg.innerHTML = "<span class='text-red-500'>¡Escribe la frase!</span>";
+            } else if (!valor.endsWith('.')) {
+                statusMsg.innerHTML = "<span class='text-red-500'>Falta el punto final 📍</span>";
+            } else {
+                const palabrasEscritas = valor.split(' ');
+                const palabrasCorrectas = fraseCorrecta.split(' ');
+                let errorMayuscula = false;
+
+                for (let i = 0; i < palabrasCorrectas.length; i++) {
+                    if (palabrasEscritas[i]) {
+                        if (palabrasCorrectas[i][0] === palabrasCorrectas[i][0].toUpperCase() && 
+                            palabrasEscritas[i][0] !== palabrasEscritas[i][0].toUpperCase()) {
+                            errorMayuscula = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (errorMayuscula) {
+                    statusMsg.innerHTML = "<span class='text-red-500'>Revisa las MAYÚSCULAS 🏛️</span>";
+                } else {
+                    statusMsg.innerHTML = "<span class='text-red-500'>Revisa las letras ❌</span>";
+                }
+            }
+
+            setTimeout(() => {
+                input.classList.remove('input-incorrect');
+            }, 1500);
+        }
+
+        function actualizarUI() {
+            const input = document.getElementById('word-input');
+            input.value = "";
+            input.classList.remove('input-correct', 'input-incorrect');
+            document.getElementById('status-msg').innerHTML = "";
+            document.getElementById('current-word-num').innerText = currentIndex + 1;
+            const progreso = (currentIndex / frases.length) * 100;
+            document.getElementById('progress-fill').style.width = progreso + "%";
+            input.focus();
+        }
+
+        function mostrarPantallaFinal() {
+            document.getElementById('final-errors').innerText = errors;
+            document.getElementById('final-screen').classList.remove('hidden');
+        }
+
+        window.onload = () => {
+            cargarVoces();
+            actualizarUI();
+        };
+    </script>
+</body>
+</html>
