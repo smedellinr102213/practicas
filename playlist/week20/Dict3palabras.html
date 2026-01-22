@@ -195,7 +195,6 @@
 
     <script>
         const baseFrases = [
-            // Lista simplificada y mezclada (100 frases)
             "La rana salta", "Hoy vino Luis", "El perro corre", "Busca a Ana", "El gato come", 
             "Llama a Pepe", "La nina juega", "Mira a Marta", "El nino canta", "Canta con Juan",
             "La foca nada", "Viaja a Espana", "El pato vuela", "Visita Mexico", "La mesa brilla", 
@@ -223,36 +222,63 @@
         let errors = 0;
         let vozSeleccionada = null;
 
-        // Función para normalizar texto (quitar acentos)
         function normalizar(texto) {
             return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
 
+        // Lógica de optimización para iOS / Safari
         function cargarVoces() {
             const voces = window.speechSynthesis.getVoices();
             if (voces.length === 0) return;
 
-            vozSeleccionada = voces.find(v => {
+            // Prioridad 1: Voces específicas con nombres femeninos/infantiles en español
+            let vozEncontrada = voces.find(v => {
                 const nombre = v.name.toLowerCase();
-                return v.lang.startsWith('es') && 
-                       (nombre.includes('sofía') || nombre.includes('sandra') || 
-                        nombre.includes('niña') || nombre.includes('femenina') || 
-                        nombre.includes('female'));
-            }) || voces.find(v => v.lang === 'es-MX') || voces.find(v => v.lang.startsWith('es'));
+                const esEspañol = v.lang.startsWith('es');
+                return esEspañol && (
+                    nombre.includes('sofia') || 
+                    nombre.includes('sandra') || 
+                    nombre.includes('niña') || 
+                    nombre.includes('femenina') || 
+                    nombre.includes('female')
+                );
+            });
+
+            // Prioridad 2: Voz por defecto es-MX si no hay una específica de la lista
+            if (!vozEncontrada) {
+                vozEncontrada = voces.find(v => v.lang === 'es-MX');
+            }
+
+            // Prioridad 3: Cualquier voz en español
+            if (!vozEncontrada) {
+                vozEncontrada = voces.find(v => v.lang.startsWith('es'));
+            }
+
+            vozSeleccionada = vozEncontrada;
         }
 
-        if (speechSynthesis.onvoiceschanged !== undefined) {
+        // Gestión asíncrona para Safari/iOS
+        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = cargarVoces;
         }
 
         function reproducirPalabra() {
             window.speechSynthesis.cancel();
+            
+            // Garantizar carga en Safari si aún no está lista
             if (!vozSeleccionada) cargarVoces();
+
             const mensaje = new SpeechSynthesisUtterance(baseFrases[currentIndex]);
-            if (vozSeleccionada) mensaje.voice = vozSeleccionada;
+            
+            if (vozSeleccionada) {
+                mensaje.voice = vozSeleccionada;
+            }
+
+            // Parámetros Maestros iOS
             mensaje.lang = 'es-MX';
-            mensaje.rate = 0.9;
-            mensaje.pitch = 1.2;
+            mensaje.rate = 0.9;  // Ligeramente más lenta
+            mensaje.pitch = 1.2; // Tono agudo infantil
+
             window.speechSynthesis.speak(mensaje);
         }
 
@@ -267,7 +293,6 @@
             const valorEscrito = input.value.trim().replace(/\s+/g, ' '); 
             const fraseCorrecta = frases[currentIndex];
 
-            // Comparamos versiones normalizadas (sin acentos)
             if (normalizar(valorEscrito) === normalizar(fraseCorrecta)) {
                 marcarCorrecto();
             } else {
@@ -317,7 +342,6 @@
 
                 for (let i = 0; i < palabrasCorrectas.length; i++) {
                     if (palabrasEscritas[i]) {
-                        // Comprobación de mayúsculas (esta sí se mantiene estricta)
                         if (palabrasCorrectas[i][0] === palabrasCorrectas[i][0].toUpperCase() && 
                             palabrasEscritas[i][0] !== palabrasEscritas[i][0].toUpperCase()) {
                             errorMayuscula = true;
