@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictado Pro - Bosque Esmeralda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .input-word {
+            font-size: 3.5rem;
+            text-align: center;
+            border-bottom: 5px solid #059669;
+            color: #064e3b;
+            background: transparent;
+            width: 100%;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .input-word:disabled {
+            color: #059669;
+            border-bottom-color: transparent;
+        }
+        .firecracker {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        @keyframes particle {
+            0% { transform: translate(0, 0); opacity: 1; }
+            100% { transform: translate(var(--tw-x), var(--tw-y)); opacity: 0; }
+        }
+        .btn-green-bounce {
+            box-shadow: 0 8px 0 #047857;
+        }
+        .btn-green-bounce:active {
+            box-shadow: 0 0 0 #047857;
+            transform: translateY(8px);
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
+    </style>
+</head>
+<body>
+
+    <div id="main-container" class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl space-y-8 relative border-b-8 border-emerald-600 mx-4 text-center">
+        
+        <!-- Cabecera -->
+        <div class="flex justify-between items-center">
+            <div class="bg-emerald-600 text-white px-5 py-1.5 rounded-full font-bold text-sm">
+                Palabra: <span id="count">1</span> / 200
+            </div>
+            <div class="text-emerald-700 font-bold flex items-center space-x-1">
+                <span class="text-xs uppercase tracking-widest">Modo Libre</span>
+            </div>
+        </div>
+
+        <!-- Área de Audio -->
+        <div class="flex flex-col items-center space-y-6">
+            <button id="btn-play" class="bg-emerald-500 hover:bg-emerald-600 text-white w-32 h-32 rounded-full flex items-center justify-center shadow-lg transform transition active:scale-95 focus:outline-none btn-green-bounce">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+            </button>
+            <p class="text-emerald-800 font-bold text-lg">Toca para escuchar</p>
+        </div>
+
+        <!-- Área de Entrada -->
+        <div class="space-y-4">
+            <input type="text" id="input-word" class="input-word" placeholder="..." autocomplete="off" spellcheck="false">
+            <p class="text-center text-emerald-600 text-sm font-bold uppercase tracking-widest">Presiona ENTER para revisar</p>
+        </div>
+
+        <!-- Botón Siguiente -->
+        <button id="btn-next" class="hidden w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-2xl shadow-lg transition-all btn-green-bounce">
+            ¡EXCELENTE! SIGUIENTE →
+        </button>
+    </div>
+
+    <script>
+        // Banco de palabras
+        const palabras = [
+            "pelota", "comida", "maleta", "zapato", "camisa", "tomate", "repaso", "canasta", "muñeca", "caballo",
+            "estrella", "escuela", "galleta", "ventana", "mochila", "tortuga", "ballena", "conejo", "cepillo", "martillo",
+            "corneta", "paloma", "camino", "vecino", "regalo", "basura", "cubeta", "maceta", "helado", "pirata",
+            "tesoro", "capote", "raqueta", "cometa", "balanza", "botella", "guitarra", "pizarra", "correa", "rodilla",
+            "cuchara", "tenedor", "cocina", "tetera", "canario", "pepino", "cebolla", "lechuga", "cereza", "naranja",
+            "sandía", "espejo", "camilla", "botones", "pajita", "payaso", "trabajo", "abrigo", "estatua", "familia",
+            "cabaña", "pecera", "sonrisa", "vestido", "planeta", "cohete", "dibujo", "carreta", "hormiga", "abeja",
+            "barriga", "corazón", "botiquín", "pantalón", "bandera", "silbato", "rebaño", "mañana", "pescado", "teclado",
+            "moneda", "madera", "cuchillo", "gallina", "ovillo", "cartero", "bombero", "lechero", "panadero", "peluquero",
+            "mariposa", "bicicleta", "elefante", "calabaza", "teléfono", "computadora", "dinosaurio", "camioneta", "caramelo", "cocodrilo",
+            "escalera", "mantequilla", "sacapuntas", "semáforo", "televisor", "ventilador", "hipopótamo", "rinoceronte", "murciélago", "esperanza",
+            "panadería", "carnicería", "zapatería", "biblioteca", "estudiante", "bolígrafo", "cuaderno", "mochilita", "regalito", "pajarito",
+            "animales", "vacaciones", "primavera", "invierno", "chocolate", "gelatina", "ensalada", "espagueti", "macarrones", "mayonesa",
+            "almohada", "alfombra", "escritorio", "dormitorio", "lavadora", "secadora", "aspiradora", "microondas", "cafetera", "plancha",
+            "bomberito", "enfermera", "policía", "carpintero", "arquitecto", "doctora", "veterinario", "astronauta", "marineros", "soldadito",
+            "camisita", "zapatito", "gorrita", "guantes", "bufandita", "calcetines", "relojito", "anillito", "pulserita", "collarcito",
+            "arbolito", "florecita", "jardinería", "naturaleza", "montañas", "bosquecito", "lagunita", "riachuelo", "cascada", "desierto",
+            "heladería", "pastelería", "frutería", "juguetería", "librería", "farmacia", "hospital", "aeropuerto", "gasolinera", "estación",
+            "cumpleaños", "invitación", "fiestita", "piñata", "sorpresa", "payasito", "música", "canciones", "guitarrista", "tambores",
+            "acuario", "zoológico", "parquecito", "tobogán", "columpio", "resbaladilla", "peliculita", "caricatura", "aventura", "amiguitos"
+        ];
+        let index = 0;
+        let preferredVoice = null;
+
+        const btnPlay = document.getElementById('btn-play');
+        const btnNext = document.getElementById('btn-next');
+        const inputWord = document.getElementById('input-word');
+        const countDisplay = document.getElementById('count');
+
+        // Configuración de Voz Nativa
+        function setVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            preferredVoice = voices.find(v => v.lang.startsWith('es') && /mexico|sabrina|helena|pau|sofi/i.test(v.name)) 
+                             || voices.find(v => v.lang.startsWith('es')) 
+                             || voices[0];
+        }
+
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = setVoice;
+        }
+        setVoice();
+
+        function speak(text) {
+            if (speechSynthesis.speaking) speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = preferredVoice;
+            utterance.rate = 0.8; 
+            utterance.pitch = 1.2; 
+            utterance.lang = 'es-MX';
+            speechSynthesis.speak(utterance);
+        }
+
+        function removeAccents(str) {
+            if (!str) return "";
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        }
+
+        function celebrate() {
+            const colors = ['#10b981', '#34d399', '#059669', '#6ee7b7'];
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'firecracker';
+                p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * 200 + 50;
+                p.style.setProperty('--tw-x', `${Math.cos(angle) * dist}px`);
+                p.style.setProperty('--tw-y', `${Math.sin(angle) * dist}px`);
+                p.style.left = '50%';
+                p.style.top = '50%';
+                p.style.animation = `particle 0.8s ease-out forwards`;
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+            }
+        }
+
+        function check() {
+            const userVal = removeAccents(inputWord.value);
+            const targetVal = removeAccents(palabras[index]);
+
+            if (userVal === targetVal) {
+                celebrate();
+                btnNext.classList.remove('hidden');
+                inputWord.disabled = true;
+                index++;
+            } else {
+                inputWord.classList.add('animate-shake', 'border-red-500');
+                setTimeout(() => inputWord.classList.remove('animate-shake', 'border-red-500'), 500);
+            }
+        }
+
+        btnPlay.addEventListener('click', () => {
+            speak(palabras[index]);
+            inputWord.focus();
+        });
+
+        btnNext.addEventListener('click', () => {
+            btnNext.classList.add('hidden');
+            inputWord.disabled = false;
+            inputWord.value = "";
+            countDisplay.innerText = index + 1;
+            inputWord.focus();
+            setTimeout(() => speak(palabras[index]), 300);
+        });
+
+        inputWord.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') check();
+        });
+
+        window.onload = () => {
+            setTimeout(() => inputWord.focus(), 600);
+        };
+    </script>
+</body>
+</html>
