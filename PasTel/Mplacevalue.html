@@ -50,12 +50,15 @@
         .word {
             display: inline-block;
             margin-right: 10px;
-            padding: 2px 6px;
-            border-radius: 8px;
+            padding: 0 2px;
+            border-bottom: 4px solid transparent;
+            transition: border-color 0.1s; /* Transición muy ligera */
         }
 
+        /* Marcador de línea: mucho más ligero para Safari que el fondo de color */
         .word.highlight {
-            /* No visual style as requested */
+            border-bottom: 4px solid #0284c7;
+            color: #0284c7;
         }
 
         .status-badge {
@@ -126,7 +129,7 @@
         let synth = window.speechSynthesis;
         let voices = [];
         let currentUtterance = null;
-        let lastWordTracked = 0;
+        let sessionWordCounter = 0;
 
         wordsArray.forEach((word, index) => {
             const span = document.createElement('span');
@@ -161,15 +164,13 @@
         function resumeOrStart() {
             if (currentWordIndex >= wordsArray.length) {
                 currentWordIndex = 0;
-                lastWordTracked = 0;
             }
             
             isPlaying = true;
             updateStatusUI(true);
 
-            // Hablar desde el índice actual
-            const textToSpeak = wordsArray.slice(currentWordIndex).join(" ");
-            currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+            const remainingText = wordsArray.slice(currentWordIndex).join(" ");
+            currentUtterance = new SpeechSynthesisUtterance(remainingText);
             
             currentUtterance.lang = 'en-US';
             currentUtterance.rate = 0.55; 
@@ -185,17 +186,15 @@
             
             if (girlVoice) currentUtterance.voice = girlVoice;
 
-            let wordOffset = 0;
+            sessionWordCounter = 0;
 
             currentUtterance.onboundary = (event) => {
                 if (event.name === 'word') {
-                    // Calculamos la posición real sumando el índice donde empezamos + las palabras procesadas en este tramo
-                    const globalIndex = currentWordIndex + wordOffset;
+                    const globalIndex = currentWordIndex + sessionWordCounter;
                     if (globalIndex < wordsArray.length) {
                         highlightAndScroll(globalIndex);
-                        lastWordTracked = globalIndex;
+                        sessionWordCounter++;
                     }
-                    wordOffset++;
                 }
             };
 
@@ -212,9 +211,15 @@
         function pauseReading() {
             isPlaying = false;
             synth.cancel(); 
-            // Guardamos la siguiente palabra como punto de inicio para la reanudación
-            currentWordIndex = lastWordTracked + 1;
+            
+            // Sincronización robusta para iPad
+            currentWordIndex += sessionWordCounter;
+            
             updateStatusUI(false);
+            // Mantenemos la última palabra subrayada para referencia visual
+            if (currentWordIndex > 0) {
+                highlightAndScroll(currentWordIndex - 1);
+            }
         }
 
         function updateStatusUI(playing) {
@@ -234,9 +239,13 @@
         }
 
         function highlightAndScroll(index) {
+            // Quitamos subrayados anteriores
+            document.querySelectorAll('.word.highlight').forEach(el => el.classList.remove('highlight'));
+            
             const wordSpan = document.getElementById(`word-${index}`);
             if (wordSpan) {
-                // Lógica de scroll invisible
+                wordSpan.classList.add('highlight');
+                
                 const cardRect = mainCard.getBoundingClientRect();
                 const wordRect = wordSpan.getBoundingClientRect();
                 const relativeTop = wordRect.top - cardRect.top + mainCard.scrollTop;
@@ -263,7 +272,7 @@
             if(e) e.stopPropagation();
             document.getElementById('repeat-modal').classList.add('hidden');
             currentWordIndex = 0;
-            lastWordTracked = 0;
+            sessionWordCounter = 0;
             resumeOrStart();
             mainCard.scrollTo({ top: 0 });
         }
