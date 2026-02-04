@@ -53,14 +53,11 @@
             margin-right: 10px;
             padding: 2px 6px;
             border-radius: 8px;
-            /* Eliminamos transiciones pesadas para evitar lag */
-            transition: background-color 0.1s;
         }
 
-        /* Resaltado simple y sin sombras para máximo rendimiento */
+        /* Marcador de palabras eliminado según la solicitud */
         .word.highlight {
-            color: #ffffff;
-            background-color: #0284c7;
+            /* No styles here to keep it invisible */
         }
 
         .status-badge {
@@ -78,12 +75,6 @@
             background-color: #22c55e;
             color: white;
             box-shadow: 0 4px 0 #166534;
-        }
-
-        .floating-emoji {
-            position: absolute;
-            font-size: 2rem;
-            pointer-events: none;
         }
 
         .game-card::-webkit-scrollbar {
@@ -151,7 +142,6 @@
             voices = synth.getVoices();
         }
         
-        // Soporte mejorado para carga de voces en iOS/Safari
         loadVoices();
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = loadVoices;
@@ -183,10 +173,9 @@
             currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
             
             currentUtterance.lang = 'en-US';
-            currentUtterance.rate = 0.55; // Ajustado para que no sea tan robótico pero sea lento
+            currentUtterance.rate = 0.55; 
             currentUtterance.pitch = 1.1; 
 
-            // Selección de voz optimizada para iPad (Samantha o Nicky son excelentes)
             const preferredVoices = voices.filter(v => v.lang.includes('en-US'));
             const girlVoice = preferredVoices.find(v => 
                 v.name.includes('Samantha') || 
@@ -248,16 +237,14 @@
             clearHighlights();
             const wordSpan = document.getElementById(`word-${index}`);
             if (wordSpan) {
-                wordSpan.classList.add('highlight');
-                
-                // Centrado automático más ligero para iPad
+                // Ya no añadimos la clase visual, pero mantenemos la lógica de scroll
                 const cardRect = mainCard.getBoundingClientRect();
                 const wordRect = wordSpan.getBoundingClientRect();
                 const relativeTop = wordRect.top - cardRect.top + mainCard.scrollTop;
                 
                 mainCard.scrollTo({
                     top: relativeTop - (mainCard.clientHeight / 2),
-                    behavior: 'auto' // 'auto' es más rápido que 'smooth' en dispositivos viejos
+                    behavior: 'auto'
                 });
             }
         }
