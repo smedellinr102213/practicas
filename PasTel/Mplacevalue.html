@@ -43,20 +43,13 @@
             line-height: 2.2; 
             text-align: left;
             margin: 1.5rem 0;
-            color: #64748b; /* Color base más tenue */
+            color: #1e293b; /* Color sólido para máxima legibilidad sin lag */
             font-weight: 600;
         }
 
         .word {
             display: inline-block;
             margin-right: 10px;
-            transition: none; /* Sin transiciones para máximo rendimiento */
-        }
-
-        /* Solo cambiamos el color para evitar "Reflow" y lag en Safari */
-        .word.highlight {
-            color: #0284c7;
-            font-weight: 800;
         }
 
         .status-badge {
@@ -103,7 +96,7 @@
         </div>
 
         <div class="mt-4 text-slate-400 font-bold italic pb-6">
-            Optimized for iPad Safari 🚀
+            Visual pointer disabled for maximum performance.
         </div>
     </div>
 
@@ -129,11 +122,11 @@
         let voices = [];
         let currentUtterance = null;
 
-        // Mapeo de índices de caracteres para saber exactamente dónde empieza cada palabra
+        // Mapa de índices de caracteres para saber exactamente dónde empieza cada palabra
         const wordRanges = [];
         let charAcc = 0;
 
-        // Inyectamos las palabras y construimos el mapa de rangos
+        // Inyectamos las palabras para que el diseño sea consistente
         wordsArray.forEach((word, index) => {
             const span = document.createElement('span');
             span.classList.add('word');
@@ -179,7 +172,7 @@
             isPlaying = true;
             updateStatusUI(true);
 
-            // Obtenemos el texto desde la posición exacta del mapa de rangos
+            // Obtenemos el fragmento de texto desde la posición de la palabra actual
             const startChar = wordRanges[currentWordIndex].start;
             const textToSpeak = originalText.substring(startChar);
             
@@ -200,16 +193,15 @@
 
             currentUtterance.onboundary = (event) => {
                 if (event.name === 'word') {
-                    // Calculamos el índice global sumando el desplazamiento inicial
+                    // Calculamos el índice absoluto del carácter
                     const absoluteCharIndex = startChar + event.charIndex;
                     
-                    // Buscamos a qué palabra pertenece este índice de carácter
+                    // Buscamos la palabra correspondiente para actualizar el progreso
                     const wordMatch = wordRanges.find(r => absoluteCharIndex >= r.start && absoluteCharIndex < r.end + 1);
                     
                     if (wordMatch) {
-                        highlightAndScroll(wordMatch.index);
-                        // Guardamos el índice para la pausa
                         currentWordIndex = wordMatch.index;
+                        autoScroll(wordMatch.index);
                     }
                 }
             };
@@ -228,7 +220,7 @@
             isPlaying = false;
             synth.cancel(); 
             
-            // Avanzamos uno para que al reanudar no repita la palabra actual
+            // Avanzamos al siguiente índice para que la próxima locución ignore la palabra actual
             currentWordIndex++;
             
             updateStatusUI(false);
@@ -250,19 +242,14 @@
             }
         }
 
-        function highlightAndScroll(index) {
-            const prev = document.querySelector('.word.highlight');
-            if (prev) prev.classList.remove('highlight');
-            
+        function autoScroll(index) {
             const wordSpan = document.getElementById(`word-${index}`);
             if (wordSpan) {
-                wordSpan.classList.add('highlight');
-                
                 const cardRect = mainCard.getBoundingClientRect();
                 const wordRect = wordSpan.getBoundingClientRect();
                 const relativeTop = wordRect.top - cardRect.top + mainCard.scrollTop;
                 
-                // Movimiento instantáneo
+                // Desplazamiento instantáneo sin animaciones para evitar lag
                 mainCard.scrollTo({
                     top: relativeTop - (mainCard.clientHeight / 2),
                     behavior: 'auto'
