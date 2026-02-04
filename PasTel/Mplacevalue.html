@@ -43,7 +43,7 @@
             line-height: 2.2; 
             text-align: left;
             margin: 1.5rem 0;
-            color: #1e293b; /* Color sólido para máxima legibilidad sin lag */
+            color: #1e293b; 
             font-weight: 600;
         }
 
@@ -121,12 +121,11 @@
         let synth = window.speechSynthesis;
         let voices = [];
         let currentUtterance = null;
+        let lastConfirmedWordIndex = -1; // Seguimiento de seguridad
 
-        // Mapa de índices de caracteres para saber exactamente dónde empieza cada palabra
         const wordRanges = [];
         let charAcc = 0;
 
-        // Inyectamos las palabras para que el diseño sea consistente
         wordsArray.forEach((word, index) => {
             const span = document.createElement('span');
             span.classList.add('word');
@@ -139,7 +138,7 @@
                 end: charAcc + word.length,
                 index: index
             });
-            charAcc += word.length + 1; // +1 por el espacio
+            charAcc += word.length + 1; 
         });
 
         function loadVoices() {
@@ -167,12 +166,13 @@
         function resumeOrStart() {
             if (currentWordIndex >= wordsArray.length) {
                 currentWordIndex = 0;
+                lastConfirmedWordIndex = -1;
             }
             
             isPlaying = true;
             updateStatusUI(true);
 
-            // Obtenemos el fragmento de texto desde la posición de la palabra actual
+            // Obtenemos el texto exacto desde donde se quedó
             const startChar = wordRanges[currentWordIndex].start;
             const textToSpeak = originalText.substring(startChar);
             
@@ -193,14 +193,12 @@
 
             currentUtterance.onboundary = (event) => {
                 if (event.name === 'word') {
-                    // Calculamos el índice absoluto del carácter
                     const absoluteCharIndex = startChar + event.charIndex;
-                    
-                    // Buscamos la palabra correspondiente para actualizar el progreso
                     const wordMatch = wordRanges.find(r => absoluteCharIndex >= r.start && absoluteCharIndex < r.end + 1);
                     
                     if (wordMatch) {
-                        currentWordIndex = wordMatch.index;
+                        // Guardamos esta como la última palabra CONFIRMADA por el audio
+                        lastConfirmedWordIndex = wordMatch.index;
                         autoScroll(wordMatch.index);
                     }
                 }
@@ -220,8 +218,15 @@
             isPlaying = false;
             synth.cancel(); 
             
-            // Avanzamos al siguiente índice para que la próxima locución ignore la palabra actual
-            currentWordIndex++;
+            // SOLUCIÓN DEFINITIVA: 
+            // Si tenemos una palabra confirmada, forzamos que el siguiente inicio sea la palabra + 1.
+            // Esto evita que Safari use el índice de caracteres errático del evento 'cancel'.
+            if (lastConfirmedWordIndex !== -1) {
+                currentWordIndex = lastConfirmedWordIndex + 1;
+            } else {
+                // Fallback de seguridad si se pausa antes de detectar la primera palabra
+                currentWordIndex = currentWordIndex; 
+            }
             
             updateStatusUI(false);
         }
@@ -249,7 +254,6 @@
                 const wordRect = wordSpan.getBoundingClientRect();
                 const relativeTop = wordRect.top - cardRect.top + mainCard.scrollTop;
                 
-                // Desplazamiento instantáneo sin animaciones para evitar lag
                 mainCard.scrollTo({
                     top: relativeTop - (mainCard.clientHeight / 2),
                     behavior: 'auto'
@@ -272,6 +276,7 @@
             if(event) event.stopPropagation();
             document.getElementById('repeat-modal').classList.add('hidden');
             currentWordIndex = 0;
+            lastConfirmedWordIndex = -1;
             resumeOrStart();
             mainCard.scrollTo({ top: 0 });
         }
