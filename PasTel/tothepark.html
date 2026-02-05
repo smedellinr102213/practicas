@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Park Adventure Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+            color: #831843;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            position: relative;
+        }
+
+        .shape-bg {
+            position: fixed;
+            z-index: -1;
+            opacity: 0.35;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
+            pointer-events: none;
+            animation: floatShape 15s infinite ease-in-out;
+        }
+
+        @keyframes floatShape {
+            0% { transform: translateY(0) rotate(0deg) scale(1); }
+            50% { transform: translateY(-40px) rotate(10deg) scale(1.1); }
+            100% { transform: translateY(0) rotate(0deg) scale(1); }
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 8px solid #f472b6;
+            max-width: 800px; 
+            width: 95%;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            max-height: 75vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .text-container {
+            font-size: 2.2rem;
+            line-height: 2.2; 
+            text-align: left;
+            margin: 1.5rem 0;
+            color: #500724; 
+            font-weight: 700;
+        }
+
+        .word {
+            display: inline-block;
+            margin-right: 12px;
+            transition: color 0.2s;
+        }
+
+        .status-badge {
+            background-color: #f472b6;
+            color: white;
+            padding: 12px 35px;
+            border-radius: 25px;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+            box-shadow: 0 6px 0 #be185d;
+            border: 3px solid #fff;
+        }
+
+        .reading-active {
+            background-color: #ec4899;
+            box-shadow: 0 6px 0 #9d174d;
+        }
+
+        .game-card::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body onclick="handleGlobalClick(event)">
+
+    <!-- Decoración de Parque de Fondo -->
+    <!-- Mariposa -->
+    <svg class="shape-bg" style="top: 15%; left: 5%; width: 100px;" viewBox="0 0 100 100">
+        <path d="M50 50 Q30 20 10 40 Q10 60 50 50 Q70 20 90 40 Q90 60 50 50 Q30 80 10 60 Q10 40 50 50 Q70 80 90 60 Q90 40 50 50" fill="#f9a8d4" stroke="#db2777" stroke-width="2"/>
+    </svg>
+
+    <!-- Sol -->
+    <svg class="shape-bg" style="top: 5%; left: 80%; width: 120px; animation-delay: -3s;" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="25" fill="#fde047" />
+        <g stroke="#facc15" stroke-width="6" stroke-linecap="round">
+            <line x1="50" y1="10" x2="50" y2="20" />
+            <line x1="50" y1="90" x2="50" y2="80" />
+            <line x1="10" y1="50" x2="20" y2="50" />
+            <line x1="90" y1="50" x2="80" y2="50" />
+        </g>
+    </svg>
+
+    <!-- Jugo Fresco -->
+    <svg class="shape-bg" style="top: 70%; left: 85%; width: 100px; animation-delay: -5s;" viewBox="0 0 100 100">
+        <rect x="35" y="40" width="30" height="45" rx="5" fill="#fb923c" />
+        <path d="M50 40 V20 H60" fill="none" stroke="#94a3b8" stroke-width="4" />
+        <circle cx="50" cy="60" r="8" fill="#fff" opacity="0.3" />
+    </svg>
+
+    <!-- Columpio / Parque -->
+    <svg class="shape-bg" style="top: 80%; left: 10%; width: 140px; animation-delay: -2s;" viewBox="0 0 100 100">
+        <line x1="20" y1="20" x2="20" y2="80" stroke="#9d174d" stroke-width="4" />
+        <line x1="80" y1="20" x2="80" y2="80" stroke="#9d174d" stroke-width="4" />
+        <line x1="20" y1="25" x2="80" y2="25" stroke="#9d174d" stroke-width="4" />
+        <line x1="40" y1="25" x2="40" y2="60" stroke="#db2777" stroke-width="2" />
+        <line x1="60" y1="25" x2="60" y2="60" stroke="#db2777" stroke-width="2" />
+        <rect x="35" y="60" width="30" height="5" fill="#db2777" />
+    </svg>
+
+    <div class="mt-4 mb-4 text-center">
+        <h1 class="text-5xl font-black text-pink-700 mb-1 drop-shadow-sm">🦋 Park Day Reader 🎡</h1>
+        <p class="text-xl text-pink-900 font-bold">Touch to Play/Pause! ✨</p>
+    </div>
+
+    <div class="game-card" id="main-card">
+        <div class="flex justify-between items-center mb-4 sticky top-0 bg-white/95 z-20 py-2 rounded-2xl px-4">
+            <span class="bg-pink-500 text-white px-6 py-2 rounded-2xl font-black text-xl shadow-md">
+                📖 Read: <span id="read-count">0</span>
+            </span>
+            <div id="play-status" class="status-badge text-xl">
+                <span id="status-icon">▶️</span> <span id="status-text">Tap to Start</span>
+            </div>
+        </div>
+
+        <div id="paragraph" class="text-container">
+            <!-- Words injected here -->
+        </div>
+
+        <div class="mt-4 text-pink-400 font-bold italic pb-6">
+            Family Fun Edition • Playground, Butterflies, and Juice! 🥤
+        </div>
+    </div>
+
+    <!-- Modal de repetición -->
+    <div id="repeat-modal" class="hidden fixed inset-0 bg-pink-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6" onclick="event.stopPropagation()">
+        <div class="bg-white p-10 rounded-[50px] shadow-2xl border-8 border-pink-400 text-center max-w-sm">
+            <h2 class="text-4xl font-black text-pink-600 mb-3">Wonderful! 🎊</h2>
+            <p class="text-2xl font-bold text-slate-600 mb-8">What a Great Day!</p>
+            <button onclick="resetAndRead(event)" class="bg-pink-500 text-white px-10 py-4 rounded-full text-2xl font-black shadow-[0_8px_0_#9d174d] active:translate-y-1 transition-all">Play Again 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const originalText = "Yesterday, I went to the park with my family and we had so much fun. First, I ran to the big playground and climbed up the tall slide. Then, I jumped on the swings and flew high into the air. After playing, I saw a colorful butterfly and followed it through the green grass. My mom gave me a cold juice because it was very sunny outside. I felt very happy and tired at the end of the day. It was the best day ever!";
+        
+        const wordsArray = originalText.split(" ");
+        const paragraphContainer = document.getElementById('paragraph');
+        const mainCard = document.getElementById('main-card');
+        
+        let currentWordIndex = 0; 
+        let isPlaying = false;
+        let readCount = 0;
+        let synth = window.speechSynthesis;
+        let voices = [];
+        let currentUtterance = null;
+        let lastConfirmedIndex = 0;
+
+        const wordRanges = [];
+        let charAcc = 0;
+
+        wordsArray.forEach((word, index) => {
+            const span = document.createElement('span');
+            span.classList.add('word');
+            span.id = `word-${index}`;
+            span.innerText = word;
+            paragraphContainer.appendChild(span);
+
+            wordRanges.push({
+                start: charAcc,
+                end: charAcc + word.length,
+                index: index
+            });
+            charAcc += word.length + 1; 
+        });
+
+        function loadVoices() {
+            voices = synth.getVoices();
+        }
+        
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        function handleGlobalClick(e) {
+            if (!document.getElementById('repeat-modal').classList.contains('hidden')) return;
+            toggleSpeech();
+        }
+
+        function toggleSpeech() {
+            if (isPlaying) {
+                pauseReading();
+            } else {
+                resumeOrStart();
+            }
+        }
+
+        function resumeOrStart() {
+            if (currentWordIndex >= wordsArray.length) {
+                currentWordIndex = 0;
+                lastConfirmedIndex = 0;
+            }
+
+            isPlaying = true;
+            updateStatusUI(true);
+
+            const startChar = wordRanges[currentWordIndex].start;
+            const textToSpeak = originalText.substring(startChar);
+            
+            currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+            currentUtterance.lang = 'en-US';
+            currentUtterance.rate = 0.55; 
+            currentUtterance.pitch = 1.1; 
+
+            const preferredVoices = voices.filter(v => v.lang.includes('en-US'));
+            const girlVoice = preferredVoices.find(v => 
+                v.name.includes('Samantha') || 
+                v.name.includes('Nicky') || 
+                v.name.includes('Victoria') ||
+                v.name.includes('Apple')
+            ) || preferredVoices[0];
+            
+            if (girlVoice) currentUtterance.voice = girlVoice;
+
+            currentUtterance.onboundary = (event) => {
+                if (event.name === 'word') {
+                    const absoluteCharIndex = startChar + event.charIndex;
+                    const wordMatch = wordRanges.find(r => absoluteCharIndex >= r.start && absoluteCharIndex < r.end + 1);
+                    
+                    if (wordMatch) {
+                        if (wordMatch.index >= lastConfirmedIndex) {
+                            lastConfirmedIndex = wordMatch.index;
+                            currentWordIndex = wordMatch.index;
+                            autoScroll(wordMatch.index);
+                        }
+                    }
+                }
+            };
+
+            currentUtterance.onend = () => {
+                if (isPlaying) {
+                    currentWordIndex = wordsArray.length;
+                    finishReading();
+                }
+            };
+
+            synth.cancel();
+            setTimeout(() => {
+                if (isPlaying) synth.speak(currentUtterance);
+            }, 50);
+        }
+
+        function pauseReading() {
+            isPlaying = false;
+            synth.cancel(); 
+            currentWordIndex = lastConfirmedIndex + 1;
+            updateStatusUI(false);
+        }
+
+        function updateStatusUI(playing) {
+            const icon = document.getElementById('status-icon');
+            const textEl = document.getElementById('status-text');
+            const badge = document.getElementById('play-status');
+            
+            if (playing) {
+                icon.innerText = "⏸️";
+                textEl.innerText = "Reading...";
+                badge.classList.add('reading-active');
+            } else {
+                icon.innerText = "▶️";
+                textEl.innerText = "Paused";
+                badge.classList.remove('reading-active');
+            }
+        }
+
+        function autoScroll(index) {
+            const wordSpan = document.getElementById(`word-${index}`);
+            if (wordSpan) {
+                const cardRect = mainCard.getBoundingClientRect();
+                const wordRect = wordSpan.getBoundingClientRect();
+                const relativeTop = wordRect.top - cardRect.top + mainCard.scrollTop;
+                
+                mainCard.scrollTo({
+                    top: relativeTop - (mainCard.clientHeight / 2),
+                    behavior: 'auto'
+                });
+            }
+        }
+
+        function finishReading() {
+            isPlaying = false;
+            readCount++;
+            document.getElementById('read-count').innerText = readCount;
+            updateStatusUI(false);
+            
+            setTimeout(() => {
+                document.getElementById('repeat-modal').classList.remove('hidden');
+            }, 500);
+        }
+
+        function resetAndRead(event) {
+            if(event) event.stopPropagation();
+            document.getElementById('repeat-modal').classList.add('hidden');
+            currentWordIndex = 0;
+            lastConfirmedIndex = 0;
+            resumeOrStart();
+            mainCard.scrollTo({ top: 0 });
+        }
+
+        window.onload = loadVoices;
+    </script>
+</body>
+</html>
