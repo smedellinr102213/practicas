@@ -220,13 +220,6 @@
     <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
 
     <script>
-        const emojiMap = {
-            "pepe": "👦", "niña": "👧", "gato": "🐱", "mamá": "👩", "hugo": "👦",
-            "sara": "👧", "sapo": "🐸", "luis": "👦", "rita": "👧", "ana": "👧",
-            "perro": "🐶", "vaca": "🐮", "pato": "🦆", "casa": "🏠", "sol": "☀️",
-            "sopa": "🍜", "luna": "🌙", "coche": "🚗", "piña": "🍍", "oso": "🐻"
-        };
-
         const oracionesBase = [
             "Pepe salta alto.", "La niña dibuja.", "El gato duerme.", "Mamá barre hoy.", "Hugo limpia todo.",
             "Sara toma sopa.", "El sapo mira.", "Luis come pan.", "Rita ríe mucho.", "Ana busca agua.",
@@ -257,6 +250,47 @@
             "El coco tiene leche.", "La capa es roja.", "El cubo tiene arena.", "Papá riega flores.", "La puerta cierra."
         ];
 
+        const emojiMap = {
+            "pepe": "👦", "niña": "👧", "gato": "🐱", "mamá": "👩", "hugo": "👦",
+            "sara": "👧", "sapo": "🐸", "luis": "👦", "rita": "👧", "ana": "👧",
+            "perro": "🐶", "vaca": "🐮", "pato": "🦆", "casa": "🏠", "sol": "☀️",
+            "sopa": "🍜", "luna": "🌙", "coche": "🚗", "piña": "🍍", "oso": "🐻"
+        };
+
+        let vocesDisponibles = [];
+        let selectedSentences = [];
+        let currentIndex = 0;
+        let repetitions = 0;
+        let errors = 0;
+        let successes = 0;
+        let nombreAlumno = "";
+        let falladoEnRepeticionActual = false; 
+
+        // --- MEJORA IPAD: Carga de voces ---
+        function cargarVoces() {
+            vocesDisponibles = window.speechSynthesis.getVoices();
+        }
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = cargarVoces;
+        }
+
+        function speak(text) {
+            window.speechSynthesis.cancel(); // Limpia audios pendientes (Vital iPad)
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Selección de voz premium para iPad
+            const mejorVoz = vocesDisponibles.find(v => 
+                v.lang.includes('es') && (v.name.includes('Paulina') || v.name.includes('Monica') || v.name.includes('Sofia'))
+            );
+            
+            if (mejorVoz) utterance.voice = mejorVoz;
+            
+            utterance.lang = 'es-MX';
+            utterance.pitch = 1.1;
+            utterance.rate = 0.9; // Velocidad clara
+            window.speechSynthesis.speak(utterance);
+        }
+
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -265,31 +299,9 @@
             return array;
         }
 
-        let selectedSentences = shuffle([...oracionesBase]).slice(0, 10);
-        let currentIndex = 0;
-        let repetitions = 0;
-        let errors = 0;
-        let successes = 0;
-        let nombreAlumno = "";
-        let falladoEnRepeticionActual = false; 
-
-        function speak(text) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'es-MX';
-            utterance.pitch = 1.1;
-            utterance.rate = 0.85;
-            window.speechSynthesis.speak(utterance);
-        }
-
-        // Función para quitar acentos y limpiar espacios múltiples
         function limpiarTexto(texto) {
             if (!texto) return "";
-            return texto
-                .normalize("NFD") // Descompone caracteres con acento
-                .replace(/[\u0300-\u036f]/g, "") // Elimina la marca del acento
-                .replace(/\s+/g, ' ') // Convierte cualquier cantidad de espacios en uno solo
-                .trim(); // Elimina espacios al inicio y al final
+            return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').trim();
         }
 
         function getEmojiForSentence(sentence) {
@@ -301,9 +313,11 @@
         }
 
         function iniciarJuego() {
+            cargarVoces();
             nombreAlumno = document.getElementById('student-name').value || "Invitado";
             document.getElementById('display-student-name').innerText = nombreAlumno;
             document.getElementById('start-overlay').style.display = 'none';
+            selectedSentences = shuffle([...oracionesBase]).slice(0, 10);
             actualizarUI();
         }
 
@@ -325,11 +339,8 @@
             const targetRaw = selectedSentences[currentIndex];
             const userRaw = input.value;
             
-            // Limpiamos acentos y normalizamos espacios para la comparación
             const targetLimpio = limpiarTexto(targetRaw);
             const userLimpio = limpiarTexto(userRaw);
-
-            // Comparación flexible
             const isPerfect = userLimpio === targetLimpio;
             
             if (isPerfect) {
@@ -337,7 +348,6 @@
                     successes++;
                     document.getElementById('success-count').innerText = successes;
                 }
-                
                 input.classList.add('input-correct');
                 msg.innerHTML = "✨ ¡Excelente! ✨";
                 document.getElementById('sound-success').play().catch(()=>{});
@@ -358,9 +368,7 @@
                 document.getElementById('error-count').innerText = errors;
                 input.classList.add('input-incorrect');
                 
-                // Feedback pedagógico (comparando sin acentos ni espacios extra)
                 if (userLimpio.toLowerCase() === targetLimpio.toLowerCase()) {
-                    // Si el contenido es igual pero falló algo de forma (Mayúscula/Punto)
                     const userTrimmed = userRaw.trim();
                     if (userTrimmed[0] !== targetRaw[0]) {
                         msg.innerHTML = `<span class="text-red-500">¡Recuerda la Mayúscula!</span>`;
@@ -384,16 +392,13 @@
             input.classList.remove('input-correct');
             document.getElementById('status-msg').innerHTML = "";
             document.getElementById('current-word-num').innerText = currentIndex + 1;
-
-            const currentSentence = selectedSentences[currentIndex];
-            document.getElementById('emoji-hint').innerText = getEmojiForSentence(currentSentence);
+            document.getElementById('emoji-hint').innerText = getEmojiForSentence(selectedSentences[currentIndex]);
 
             const dots = document.querySelectorAll('.repetition-dot');
             dots.forEach((d, i) => d.classList.toggle('active', i < repetitions));
 
-            const total = selectedSentences.length * 3;
-            const progress = (currentIndex * 3) + repetitions;
-            document.getElementById('progress-fill').style.width = (progress / total * 100) + "%";
+            const progress = ((currentIndex * 3) + repetitions) / 30 * 100;
+            document.getElementById('progress-fill').style.width = progress + "%";
             
             reproducirOracion();
         }
@@ -404,6 +409,8 @@
             document.getElementById('final-errors').innerText = errors;
             document.getElementById('final-screen').classList.remove('hidden');
         }
+
+        window.onload = cargarVoces;
     </script>
 </body>
 </html>
