@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dictado Mágico - Flexibilidad Total</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #fdf2f8;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 30px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 4px solid #f472b6;
+            max-width: 900px; 
+            width: 95%;
+            text-align: center;
+        }
+
+        .interaction-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 1rem;
+        }
+
+        .btn-speaker {
+            background-color: #fdf2f8;
+            border: 4px solid #f472b6;
+            border-radius: 50%;
+            width: 110px;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 #db2777;
+        }
+
+        .btn-speaker:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #db2777;
+        }
+
+        textarea {
+            border: 6px solid #cbd5e1;
+            border-radius: 25px;
+            padding: 15px !important; 
+            outline: none;
+            font-weight: 800 !important;
+            font-size: 2.2rem !important; 
+            color: #db2777 !important; 
+            text-align: center;
+            width: 100%;
+            margin-top: 15px;
+            line-height: 1.2 !important;
+            resize: none;
+            height: 130px !important;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        #start-overlay {
+            position: fixed;
+            inset: 0;
+            background: #f472b6;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn-start {
+            background-color: white;
+            color: #f472b6;
+            padding: 1.5rem 4rem;
+            border-radius: 50px;
+            font-size: 2.5rem;
+            font-weight: 900;
+            box-shadow: 0 10px 0 #be185d;
+            cursor: pointer;
+            border: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #f472b6;
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .repetition-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: inline-block;
+            margin: 0 5px;
+            border: 2px solid #cbd5e1;
+        }
+
+        .repetition-dot.active {
+            background: #22c55e;
+            border-color: #15803d;
+        }
+
+        .input-correct {
+            border-color: #22c55e !important;
+            background-color: #f0fdf4 !important;
+            color: #15803d !important;
+        }
+
+        .input-incorrect {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            color: #b91c1c !important;
+        }
+
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <h2 class="text-5xl font-bold mb-4">Dictado Mágico</h2>
+        <p class="text-2xl mb-8">Escribe 3 veces cada frase.<br>¡Los acentos y espacios extra no importan!</p>
+        <input type="text" id="student-name" class="bg-white border-4 border-pink-700 rounded-2xl p-4 text-2xl text-pink-700 text-center w-80 mb-4" placeholder="Nombre del niño" autocomplete="off">
+        <button class="btn-start" onclick="iniciarJuego()">¡A JUGAR! 🚀</button>
+    </div>
+
+    <div class="mt-8 mb-4 text-center">
+        <h1 class="text-4xl font-bold text-pink-600">📝 Dictado de Frases</h1>
+        <p class="text-xl text-pink-800 font-bold italic">Alumno: <span id="display-student-name">Invitado</span></p>
+    </div>
+
+    <div class="game-card">
+        <div class="flex justify-between items-center mb-2">
+            <span class="bg-pink-100 text-pink-700 px-3 py-1 rounded-full font-bold text-sm md:text-base">Frase: <span id="current-word-num">1</span>/10</span>
+            
+            <div class="flex gap-2">
+                <div class="stat-badge bg-green-100 text-green-700 border border-green-200">
+                    <span>🏆 Aciertos:</span> <span id="success-count">0</span>
+                </div>
+                <div class="stat-badge bg-orange-100 text-orange-700 border border-orange-200">
+                    <span>❌ Errores:</span> <span id="error-count">0</span>
+                </div>
+            </div>
+
+            <div id="repetition-container">
+                <span class="repetition-dot"></span>
+                <span class="repetition-dot"></span>
+                <span class="repetition-dot"></span>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+        </div>
+
+        <div class="mt-6">
+            <div class="interaction-area">
+                <button class="btn-speaker" onclick="reproducirOracion()">
+                    <span class="text-6xl">📢</span>
+                </button>
+                <div id="emoji-hint" class="text-8xl">❓</div>
+            </div>
+            
+            <div id="status-msg" class="h-10 mb-2 font-bold text-xl"></div>
+            <textarea id="word-input" placeholder="Escribe aquí..." autocomplete="off" onkeydown="manejarTecla(event)" spellcheck="false"></textarea>
+            <p class="mt-4 text-slate-500 font-bold">Usa Mayúscula al inicio y Punto al final.</p>
+        </div>
+    </div>
+
+    <div id="final-screen" class="hidden fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
+        <h2 class="text-6xl mb-4 font-bold text-pink-600">¡Fin del Dictado! 🏆</h2>
+        <div class="text-4xl space-y-4 mb-8">
+            <p class="font-bold text-slate-700" id="final-msg"></p>
+            <p class="text-green-600 font-bold">Aciertos perfectos: <span id="final-success">0</span></p>
+            <p class="text-orange-500 font-bold">Errores totales: <span id="final-errors">0</span></p>
+        </div>
+        <button onclick="location.reload()" class="bg-green-500 text-white px-12 py-6 rounded-full text-3xl font-bold shadow-lg hover:bg-green-600 transition">Reiniciar 🔄</button>
+    </div>
+
+    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+
+    <script>
+        const emojiMap = {
+            "pepe": "👦", "niña": "👧", "gato": "🐱", "mamá": "👩", "hugo": "👦",
+            "sara": "👧", "sapo": "🐸", "luis": "👦", "rita": "👧", "ana": "👧",
+            "perro": "🐶", "vaca": "🐮", "pato": "🦆", "casa": "🏠", "sol": "☀️",
+            "sopa": "🍜", "luna": "🌙", "coche": "🚗", "piña": "🍍", "oso": "🐻"
+        };
+
+        const oracionesBase = [
+            "Pepe salta alto.", "La niña dibuja.", "El gato duerme.", "Mamá barre hoy.", "Hugo limpia todo.",
+            "Sara toma sopa.", "El sapo mira.", "Luis come pan.", "Rita ríe mucho.", "Ana busca agua.",
+            "Dani tiene sed.", "Gaby mira sol.", "Juan trepa alto.", "Inés lee cuentos.", "Kiko juega solo.",
+            "Emma tiene sueño.", "Olga mira mar.", "Raúl toma agua.", "Susi abre caja.", "Beto usa pala.",
+            "Nora sube loma.", "Tomás corre rápido.", "Xavi rompe coco.", "La vaca da leche.", "El pato nada.",
+            "Esa abeja pica.", "Mi tío cose.", "El niño grita.", "La casa tiene flores.", "Pepe pone mesa.",
+            "El perro lame.", "Lola lava ropa.", "Esa silla sirve.", "El sol brilla.", "Paco apaga fuego.",
+            "La sopa huele rico.", "El nene pide leche.", "Esa pala sirve.", "La moto suena.", "Mi tía hace pan.",
+            "La paloma vuela.", "El pelo brilla.", "El gato caza.", "Esa rama tiene hojas.", "La casa es grande.",
+            "El lobo corre.", "La nena canta.", "La nube tapa sol.", "Mi mano sujeta.", "La bota pisa.",
+            "Pepe mira tele.", "La piña tiene cáscara.", "Esa foca atrapa.", "El oso vive.", "La sala tiene cuadros.",
+            "El sol da calor.", "La miel es dulce.", "Ese pan tiene miel.", "La nena usa gorra.", "El pino es alto.",
+            "La luna brilla.", "Esa cuna tiene mantas.", "La lana abriga.", "El cine vende dulce.", "La cena tiene arroz.",
+            "Ese coche viaja.", "La cara tiene pecas.", "El dado tiene puntos.", "La seda brilla.", "El rey manda.",
+            "El gallo canta.", "La calle es larga.", "La llave abre.", "Beto lanza bola.", "La jarra guarda jugo.",
+            "Esa torre es alta.", "La tierra tiene agua.", "Esa caña pesca.", "La leña calienta.", "El bote cruza.",
+            "La bola rueda.", "La vaca pasta.", "La vela alumbra.", "La uva es dulce.", "Papá llega pronto.",
+            "El pavo infla.", "Esa nave vuela.", "La nieve moja.", "Tío compra café.", "El taco tiene carne.",
+            "La tiza marca.", "Mamá regala besos.", "El nene busca mami.", "La mano siente.", "Esa mona pela.",
+            "La pata cuida.", "La pila sirve.", "El sol dora.", "Esa silla es azul.", "La sopa cura.",
+            "El sofá es rojo.", "La sala huele.", "La nuez rompe.", "La nena pasea.", "El nudo sujeta.",
+            "La nena saluda.", "El mapa marca.", "La mula camina.", "El mono sube.", "La moto corre.",
+            "El pato asusta.", "La pala cava.", "La pera tiene jugo.", "El puma asusta.", "La tina tiene agua.",
+            "El toro mira.", "La loma tiene flores.", "La lupa aumenta.", "El lodo mancha.", "La luna sale.",
+            "La lana es suave.", "El lobo corre.", "La lija raspa.", "La rama cae.", "Esa rata busca.",
+            "La ropa seca.", "El remo mueve.", "La rosa huele.", "La casa es bella.", "La cama tiene colcha.",
+            "El coco tiene leche.", "La capa es roja.", "El cubo tiene arena.", "Papá riega flores.", "La puerta cierra."
+        ];
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        let selectedSentences = shuffle([...oracionesBase]).slice(0, 10);
+        let currentIndex = 0;
+        let repetitions = 0;
+        let errors = 0;
+        let successes = 0;
+        let nombreAlumno = "";
+        let falladoEnRepeticionActual = false; 
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-MX';
+            utterance.pitch = 1.1;
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Función para quitar acentos y limpiar espacios múltiples
+        function limpiarTexto(texto) {
+            if (!texto) return "";
+            return texto
+                .normalize("NFD") // Descompone caracteres con acento
+                .replace(/[\u0300-\u036f]/g, "") // Elimina la marca del acento
+                .replace(/\s+/g, ' ') // Convierte cualquier cantidad de espacios en uno solo
+                .trim(); // Elimina espacios al inicio y al final
+        }
+
+        function getEmojiForSentence(sentence) {
+            const words = sentence.toLowerCase().replace(/[.,]/g, "").split(" ");
+            for (let word of words) {
+                if (emojiMap[word]) return emojiMap[word];
+            }
+            return "✨";
+        }
+
+        function iniciarJuego() {
+            nombreAlumno = document.getElementById('student-name').value || "Invitado";
+            document.getElementById('display-student-name').innerText = nombreAlumno;
+            document.getElementById('start-overlay').style.display = 'none';
+            actualizarUI();
+        }
+
+        function reproducirOracion() {
+            speak(selectedSentences[currentIndex]);
+            document.getElementById('word-input').focus();
+        }
+
+        function manejarTecla(e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                verificar();
+            }
+        }
+
+        function verificar() {
+            const input = document.getElementById('word-input');
+            const msg = document.getElementById('status-msg');
+            const targetRaw = selectedSentences[currentIndex];
+            const userRaw = input.value;
+            
+            // Limpiamos acentos y normalizamos espacios para la comparación
+            const targetLimpio = limpiarTexto(targetRaw);
+            const userLimpio = limpiarTexto(userRaw);
+
+            // Comparación flexible
+            const isPerfect = userLimpio === targetLimpio;
+            
+            if (isPerfect) {
+                if (!falladoEnRepeticionActual) {
+                    successes++;
+                    document.getElementById('success-count').innerText = successes;
+                }
+                
+                input.classList.add('input-correct');
+                msg.innerHTML = "✨ ¡Excelente! ✨";
+                document.getElementById('sound-success').play().catch(()=>{});
+                
+                setTimeout(() => {
+                    repetitions++;
+                    falladoEnRepeticionActual = false; 
+                    if (repetitions >= 3) {
+                        repetitions = 0;
+                        currentIndex++;
+                    }
+                    if (currentIndex < selectedSentences.length) actualizarUI();
+                    else terminarJuego();
+                }, 1000);
+            } else {
+                errors++;
+                falladoEnRepeticionActual = true; 
+                document.getElementById('error-count').innerText = errors;
+                input.classList.add('input-incorrect');
+                
+                // Feedback pedagógico (comparando sin acentos ni espacios extra)
+                if (userLimpio.toLowerCase() === targetLimpio.toLowerCase()) {
+                    // Si el contenido es igual pero falló algo de forma (Mayúscula/Punto)
+                    const userTrimmed = userRaw.trim();
+                    if (userTrimmed[0] !== targetRaw[0]) {
+                        msg.innerHTML = `<span class="text-red-500">¡Recuerda la Mayúscula!</span>`;
+                    } else if (!userTrimmed.endsWith('.')) {
+                        msg.innerHTML = `<span class="text-red-500">¡Te falta el Punto final!</span>`;
+                    }
+                } else {
+                    msg.innerHTML = `<span class="text-red-500">Revisa las letras con calma.</span>`;
+                }
+
+                setTimeout(() => {
+                    input.classList.remove('input-incorrect');
+                    reproducirOracion();
+                }, 1500);
+            }
+        }
+
+        function actualizarUI() {
+            const input = document.getElementById('word-input');
+            input.value = "";
+            input.classList.remove('input-correct');
+            document.getElementById('status-msg').innerHTML = "";
+            document.getElementById('current-word-num').innerText = currentIndex + 1;
+
+            const currentSentence = selectedSentences[currentIndex];
+            document.getElementById('emoji-hint').innerText = getEmojiForSentence(currentSentence);
+
+            const dots = document.querySelectorAll('.repetition-dot');
+            dots.forEach((d, i) => d.classList.toggle('active', i < repetitions));
+
+            const total = selectedSentences.length * 3;
+            const progress = (currentIndex * 3) + repetitions;
+            document.getElementById('progress-fill').style.width = (progress / total * 100) + "%";
+            
+            reproducirOracion();
+        }
+
+        function terminarJuego() {
+            document.getElementById('final-msg').innerText = `¡Lo lograste, ${nombreAlumno}!`;
+            document.getElementById('final-success').innerText = successes;
+            document.getElementById('final-errors').innerText = errors;
+            document.getElementById('final-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
